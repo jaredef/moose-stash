@@ -1,8 +1,9 @@
-// moose-stash — a small Mustache template engine.
+// moose-stash — a small Mustache template engine, drop-in for mustache.js.
 //
 // A scanner splits the template on its delimiters into tokens (handling standalone
 // lines); the tokens nest into a tree on section boundaries; the renderer walks the
-// tree over a stack of context frames.
+// tree over a stack of context frames. The public surface (render/parse/escape/tags/
+// clearCache/templateCache/Writer/Context/Scanner/version) mirrors mustache.js.
 
 export class Decline extends Error {
   constructor(what: string) {
@@ -11,7 +12,20 @@ export class Decline extends Error {
   }
 }
 
-export type Partials = Record<string, string>;
+// Partials may be a name→source map or a resolver function (both, like mustache.js).
+export type PartialsMap = Record<string, string>;
+export type PartialsFn = (name: string) => string | null | undefined;
+export type Partials = PartialsMap | PartialsFn;
+
+function getPartial(partials: Partials | undefined, name: string): string | undefined {
+  if (partials == null) return undefined;
+  if (typeof partials === "function") {
+    const r = partials(name);
+    return r == null ? undefined : String(r);
+  }
+  const r = (partials as PartialsMap)[name];
+  return r == null ? undefined : r;
+}
 
 const HTML_ESCAPE: Record<string, string> = {
   "&": "&amp;",
@@ -21,12 +35,13 @@ const HTML_ESCAPE: Record<string, string> = {
   "'": "&#39;",
   "`": "&#x60;",
   "=": "&#x3D;",
-  "/": "&#x2F;", // escape / too, matching the common hardened default
+  "/": "&#x2F;", // escape / too, matching mustache.js's default entity map
 };
 
 const HTML_SPECIAL = /[&<>"'`=/]/;
 const HTML_SPECIAL_G = /[&<>"'`=/]/g;
 
+// the built-in escape; assignable via the public `escape` property (mustache.js parity)
 function escapeHtml(s: unknown): string {
   const str = typeof s === "string" ? s : String(s);
   // skip the replace when there is nothing to escape
@@ -40,20 +55,40 @@ function isWhitespace(s: string): boolean {
 // A token: [type, value, start, end, subTokens?, openingTagIndex?]
 type Token = [string, string, number, number, Token[]?, number?];
 
+// ---- render-time defaults (mutable, mirrored by the public surface) ----
+
+// The default delimiters and escape function. The public object exposes these as
+// `tags` and `escape`; assigning to them changes what a bare render()/parse() uses.
+let DEFAULT_TAGS: [string, string] = ["{{", "}}"];
+let DEFAULT_ESCAPE: (s: unknown) => string = escapeHtml;
+
+// The escape function and parse cache active for the current render/parse. Set at
+// entry and restored on exit, so a Writer's own escape/cache (or a per-call escape)
+// applies to the whole synchronous render tree — including partials and lambdas —
+// at zero per-node cost, and nested public calls (e.g. a lambda calling render) save
+// and restore around themselves.
+let activeEscape: (s: unknown) => string = escapeHtml;
+let activeParseCache: Map<string, Token[]> | null = null;
+
 // ---- scanner ----
 
 // Parsed templates are cached by (delimiters, template). Render never mutates the
-// tree, so a cached parse is identical to a fresh one.
-const PARSE_CACHE = new Map<string, Token[]>();
+// tree, so a cached parse is identical to a fresh one. A null active cache disables
+// caching (mustache.js: `templateCache = undefined`).
+const DEFAULT_CACHE = new Map<string, Token[]>();
 
-function parse(template: string, tags: [string, string] = ["{{", "}}"]): Token[] {
-  const key = tags[0] + "\u0001" + tags[1] + "\u0001" + template;
-  let cached = PARSE_CACHE.get(key);
-  if (cached === undefined) {
-    cached = parseTemplate(template, tags);
-    PARSE_CACHE.set(key, cached);
+function parse(template: string, tags: [string, string] = DEFAULT_TAGS): Token[] {
+  const cache = activeParseCache;
+  if (cache) {
+    const key = tags[0] + "" + tags[1] + "" + template;
+    let cached = cache.get(key);
+    if (cached === undefined) {
+      cached = parseTemplate(template, tags);
+      cache.set(key, cached);
+    }
+    return cached;
   }
-  return cached;
+  return parseTemplate(template, tags);
 }
 
 function parseTemplate(template: string, tags: [string, string] = ["{{", "}}"]): Token[] {
@@ -132,6 +167,7 @@ function parseTemplate(template: string, tags: [string, string] = ["{{", "}}"]):
       // set delimiters: {{=<% %>=}}
       pos += 1;
       const endEq = template.indexOf("=" + closeTag, pos);
+      if (endEq === -1) throw new Error("Unclosed tag at " + tagStart);
       content = template.slice(pos, endEq);
       pos = endEq + 1 + closeTag.length;
       const parts = content.trim().split(/\s+/);
@@ -142,6 +178,7 @@ function parseTemplate(template: string, tags: [string, string] = ["{{", "}}"]):
       // triple mustache {{{ }}} — an interpolation tag, never standalone
       const close = "}" + closeTag;
       const endIdx = template.indexOf(close, pos + 1);
+      if (endIdx === -1) throw new Error("Unclosed tag at " + tagStart);
       content = template.slice(pos + 1, endIdx);
       pos = endIdx + close.length;
       tokens.push(["&", content.trim(), tagStart, pos]);
@@ -153,10 +190,8 @@ function parseTemplate(template: string, tags: [string, string] = ["{{", "}}"]):
       const contentStart = isSigil ? pos + 1 : pos;
       const endIdx = template.indexOf(closeTag, contentStart);
       if (endIdx === -1) {
-        // unterminated tag — treat remainder as text (fail closed at render)
-        tokens.push(["text", template.slice(tagStart - openTag.length), tagStart, len]);
-        pos = len;
-        break;
+        // unterminated tag — mustache.js throws here rather than emitting text
+        throw new Error("Unclosed tag at " + tagStart);
       }
       content = template.slice(contentStart, endIdx).trim();
       pos = endIdx + closeTag.length;
@@ -383,7 +418,7 @@ function collectBlocks(childTokens: Token[], blocks: Blocks): Blocks {
 function renderTokens(
   tokens: Token[],
   stack: unknown[],
-  partials: Partials,
+  partials: Partials | undefined,
   indent: string,
   blocks: Blocks = new Map(),
 ): string {
@@ -420,7 +455,7 @@ function renderTokens(
         // parent (parametric partial): expand the named partial with the child's
         // `$` blocks layered over any inherited overrides. When standalone, indent
         // each line of the parent source (spec: parent tags indent like partials).
-        const tpl = partials[value];
+        const tpl = getPartial(partials, value);
         if (tpl == null) break;
         const childBlocks = collectBlocks(token[4] ?? [], new Map(blocks));
         const ind = String((token as unknown as unknown[])[9] ?? "");
@@ -433,7 +468,7 @@ function renderTokens(
       case "name": {
         let v = lookup(value, stack);
         if (typeof v === "function") v = callInterpolationLambda(v, stack);
-        if (v != null) out += escapeHtml(v);
+        if (v != null) out += activeEscape(v);
         break;
       }
       case "&": {
@@ -502,7 +537,7 @@ function renderTokens(
           if (resolved == null) break;
           name = String(resolved);
         }
-        const tpl = partials[name];
+        const tpl = getPartial(partials, name);
         if (tpl == null) break;
         const ind = String((token as unknown as unknown[])[9] ?? "");
         const lineHasNonSpace = Boolean(token[5]);
@@ -534,11 +569,238 @@ function indentPartial(partial: string, indentation: string, lineHasNonSpace: bo
   return lines.join("\n");
 }
 
-export function render(template: string, data: unknown, partials: Partials = {}): string {
-  // lambda return values are never re-parsed as templates; there is no option to
-  // enable that
-  return renderTokens(parse(template, ["{{", "}}"]), [data], partials, "");
+// ---- mustache.js-compatible public surface ----
+// render/parse/escape/tags/clearCache/templateCache + the Writer/Context/Scanner classes,
+// built on the two render-scoped hooks above (activeEscape/activeParseCache) and getPartial.
+
+// render's optional 4th argument: a delimiter pair, or a config object.
+export type RenderConfig = [string, string] | { tags?: [string, string]; escape?: (s: unknown) => string };
+
+function configTags(config?: RenderConfig): [string, string] | undefined {
+  if (config == null) return undefined;
+  if (Array.isArray(config)) return config;
+  return config.tags;
+}
+function configEscape(config?: RenderConfig): ((s: unknown) => string) | undefined {
+  if (config == null || Array.isArray(config)) return undefined;
+  return config.escape;
 }
 
-// default export (`import MooseStash from "moose-stash"`); named exports work too
-export default { render, Decline };
+// mustache.js allows a Scanner to be used directly. Standard incremental scanner.
+export class Scanner {
+  string: string;
+  tail: string;
+  pos: number;
+  constructor(string: string) {
+    this.string = string;
+    this.tail = string;
+    this.pos = 0;
+  }
+  eos(): boolean {
+    return this.tail === "";
+  }
+  // consume and return a leading match of `re`, or "" if it does not match at pos 0
+  scan(re: RegExp): string {
+    const match = re.exec(this.tail);
+    if (!match || match.index !== 0) return "";
+    const s = match[0];
+    this.tail = this.tail.substring(s.length);
+    this.pos += s.length;
+    return s;
+  }
+  // consume up to (not including) the next match of `re`; return the skipped text
+  scanUntil(re: RegExp): string {
+    const index = this.tail.search(re);
+    let match: string;
+    if (index === -1) {
+      match = this.tail;
+      this.tail = "";
+    } else if (index === 0) {
+      match = "";
+    } else {
+      match = this.tail.substring(0, index);
+      this.tail = this.tail.substring(index);
+    }
+    this.pos += match.length;
+    return match;
+  }
+}
+
+// mustache.js Context: a view plus a parent chain, with name lookup and a per-name
+// cache. lookup() is delegated to the engine's own resolver over the flattened chain,
+// so a Context passed to render resolves exactly as an equivalent nested view would.
+export class Context {
+  view: unknown;
+  parent: Context | null;
+  private cache: Record<string, unknown>;
+  constructor(view: unknown, parent?: Context | null) {
+    this.view = view;
+    this.parent = parent ?? null;
+    this.cache = { ".": view };
+  }
+  push(view: unknown): Context {
+    return new Context(view, this);
+  }
+  // the view chain, root-first (leaf last) — the shape the engine's stack expects
+  chain(): unknown[] {
+    const arr: unknown[] = [];
+    let c: Context | null = this;
+    while (c) {
+      arr.unshift(c.view);
+      c = c.parent;
+    }
+    return arr;
+  }
+  lookup(name: string): unknown {
+    if (name in this.cache) return this.cache[name];
+    const v = lookup(name, this.chain());
+    this.cache[name] = v;
+    return v;
+  }
+}
+
+// The shared render/parse core. Every public and Writer entry point calls these, differing
+// only in which parse cache is active: the default cache (or none, when templateCache is
+// disabled) for the bare functions; the Writer's own cache for a Writer. escape/tags come
+// from the config or the module defaults — a Writer carries no escape/tags of its own.
+function coreRender(
+  cache: Map<string, Token[]> | null,
+  template: string,
+  view: unknown,
+  partials: Partials | undefined,
+  config?: RenderConfig,
+): string {
+  requireString(template);
+  const prevE = activeEscape;
+  const prevC = activeParseCache;
+  activeEscape = configEscape(config) ?? DEFAULT_ESCAPE;
+  activeParseCache = cache;
+  try {
+    const stack = view instanceof Context ? view.chain() : [view];
+    return renderTokens(parse(template, configTags(config) ?? DEFAULT_TAGS), stack, partials, "");
+  } finally {
+    activeEscape = prevE;
+    activeParseCache = prevC;
+  }
+}
+function coreParse(cache: Map<string, Token[]> | null, template: string, tags?: [string, string]): Token[] {
+  const prev = activeParseCache;
+  activeParseCache = cache;
+  try {
+    return parse(template, tags ?? DEFAULT_TAGS);
+  } finally {
+    activeParseCache = prev;
+  }
+}
+
+// mustache.js Writer: an isolated engine with its own template cache (no own escape/tags).
+// render/parse/clearCache run the shared core against `this.cache`.
+export class Writer {
+  cache: Map<string, Token[]> | null = new Map();
+  clearCache(): void {
+    this.cache?.clear();
+  }
+  parse(template: string, tags?: [string, string]): Token[] {
+    return coreParse(this.cache, template, tags);
+  }
+  render(template: string, view: unknown, partials?: Partials, config?: RenderConfig): string {
+    return coreRender(this.cache, template, view, partials, config);
+  }
+}
+
+function requireString(template: unknown): void {
+  if (typeof template !== "string") {
+    throw new TypeError(
+      'Invalid template! Template should be a "string" ' +
+        'but "' +
+        (template === null ? "null" : typeof template) +
+        '" was given as the first argument for mustache#render(template, view, partials)',
+    );
+  }
+}
+
+// The version reported by the public `version` property (the package version).
+const VERSION = "1.0.1";
+
+// A cache wrapper matching mustache.js's templateCache shape (set/get/clear), backed
+// by the default parse cache.
+const templateCacheWrapper = {
+  set(key: string, value: Token[]) {
+    DEFAULT_CACHE.set(key, value);
+  },
+  get(key: string): Token[] | undefined {
+    return DEFAULT_CACHE.get(key);
+  },
+  clear() {
+    DEFAULT_CACHE.clear();
+  },
+};
+
+// Whether the bare render()/parse() cache templates. `templateCache = undefined`
+// disables caching (mustache.js parity); assigning a cache-like object re-enables it.
+let defaultCacheEnabled = true;
+
+// Bare render/parse/clearCache: the shared core against the default cache (null when
+// disabled via templateCache) — same core as a Writer, different active cache.
+function defaultCache(): Map<string, Token[]> | null {
+  return defaultCacheEnabled ? DEFAULT_CACHE : null;
+}
+export function render(template: string, view: unknown, partials?: Partials, config?: RenderConfig): string {
+  return coreRender(defaultCache(), template, view, partials, config);
+}
+
+// parse (and prime the cache), like mustache.js#parse.
+export function parseTemplatePublic(template: string, tags?: [string, string]): Token[] {
+  return coreParse(defaultCache(), template, tags);
+}
+
+// clearCache empties the default parse cache (and the dotted-name memo), releasing the
+// memory the parse cache would otherwise hold unbounded.
+export function clearCache(): void {
+  DEFAULT_CACHE.clear();
+  DOTTED.clear();
+}
+
+// The default export mirrors mustache.js's module object: render/parse/clearCache,
+// mutable `tags`/`escape`, `templateCache`, the Writer/Context/Scanner classes,
+// `version`, and `name`. moose's own `Decline` is carried alongside.
+const mustache = {
+  // `name` is a string as in mustache.js, but names this engine (not an impersonation).
+  name: "moose-stash",
+  version: VERSION,
+  Scanner,
+  Context,
+  Writer,
+  Decline,
+  render,
+  parse: parseTemplatePublic,
+  clearCache,
+  get tags(): [string, string] {
+    return DEFAULT_TAGS;
+  },
+  set tags(v: [string, string]) {
+    DEFAULT_TAGS = v;
+  },
+  get escape(): (s: unknown) => string {
+    return DEFAULT_ESCAPE;
+  },
+  set escape(fn: (s: unknown) => string) {
+    DEFAULT_ESCAPE = fn;
+  },
+  get templateCache(): typeof templateCacheWrapper | undefined {
+    return defaultCacheEnabled ? templateCacheWrapper : undefined;
+  },
+  set templateCache(v: unknown) {
+    if (v == null) {
+      defaultCacheEnabled = false;
+    } else {
+      defaultCacheEnabled = true;
+    }
+  },
+};
+
+// `parse` is exported under its mustache name too (the bare-function name above is
+// distinct only to avoid colliding with the internal parser).
+export { parseTemplatePublic as parse };
+
+export default mustache;

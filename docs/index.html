@@ -251,8 +251,9 @@
     <div class="lede">
       <p class="eyebrow">moosebench · Node benchmark</p>
       <h1>moose&#8209;stash <span class="vs">vs</span> <span class="mu">mustache.js</span></h1>
-      <p class="sub">Results from <code>npm run moosebench</code> — the same templating jobs, each rendered by both
-        engines to confirm <strong>identical output</strong>, then timed on Node. Green past the <code>1&times;</code> line means moose-stash is faster.</p>
+      <p class="sub">Results from <code>npm run moosebench</code> — the same templating jobs, plus the
+        <strong>drop-in compatibility API</strong> (Writer, Context, Scanner, the config argument, function partials, cache control),
+        each rendered by both engines to confirm <strong>identical output</strong>, then timed on Node. Green past the <code>1&times;</code> line means moose-stash is faster.</p>
     </div>
     <span class="envchip" id="envchip">Node v22.22.3</span>
   </header>
@@ -376,7 +377,14 @@
     {name:"delimiter-switching", group:"hard", template:"{{=<% %>=}}<% greeting %>, <%={{ }}=%>{{name}}! {{=[[ ]]=}}[[ tail ]]", status:"match", mo:0.45, mu:0.67},
     {name:"interpolation lambda", group:"hard", template:"{{salute}}, {{name}}!", status:"match", mo:0.35, mu:0.49},
     {name:"section lambda (render-cb)", group:"hard", template:"{{#upper}}{{greeting}}{{/upper}} {{name}} {{#wrap}}note{{/wrap}}", status:"only", mo:0.79, mu:null},
-    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.9, mu:null}
+    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.9, mu:null},
+    {name:"Writer (own cache)", group:"surface", template:"new Writer() — render through an isolated engine with its own template cache", status:"match", mo:0.95, mu:1.36},
+    {name:"Context (prebuilt chain)", group:"surface", template:"new Context(view).push(child) — render over a prebuilt view-chain", status:"match", mo:0.77, mu:0.90},
+    {name:"Scanner (tokenize)", group:"surface", template:"new Scanner(s) — scan/scanUntil a template string into tag bodies", status:"match", mo:7.07, mu:8.59},
+    {name:"config: custom tags", group:"surface", template:"render(t, v, {}, { tags:[\"<%\",\"%>\"] }) — per-call custom delimiters", status:"match", mo:0.98, mu:1.37},
+    {name:"config: custom escape", group:"surface", template:"render(t, v, {}, { escape }) — per-call custom escape function", status:"match", mo:0.84, mu:0.97},
+    {name:"partials as function", group:"surface", template:"render(t, v, name => …) — partials resolved by a function, not a map", status:"match", mo:1.46, mu:1.80},
+    {name:"cache churn + clearCache", group:"surface", template:"512 unique templates cycling, clearCache each cycle", status:"match", mo:1.93, mu:2.53}
   ];
 
   function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -388,7 +396,7 @@
     if (j.group !== lastGroup){
       lastGroup = j.group;
       var gr = document.createElement("div"); gr.className = "group";
-      gr.textContent = j.group === "common" ? "Common jobs" : "Hard jobs";
+      gr.textContent = j.group === "common" ? "Common jobs" : j.group === "hard" ? "Hard jobs" : "Consumable primitives — the drop-in compatibility API";
       rowsEl.appendChild(gr);
     }
     var ratio = (j.status === "only" || j.mu == null) ? null : j.mu / j.mo;

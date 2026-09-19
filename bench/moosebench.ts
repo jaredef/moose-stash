@@ -12,7 +12,13 @@
 // Run: npm run moosebench   (Node 22+, --experimental-strip-types)
 
 import Mustache from "mustache";
-import { render as moose, type Partials } from "../src/index.ts";
+import mooseDefault, {
+  render as moose,
+  Writer as MooseWriter,
+  Context as MooseContext,
+  Scanner as MooseScanner,
+  type Partials,
+} from "../src/index.ts";
 
 type Job = {
   name: string;
@@ -176,6 +182,127 @@ const JOBS: Job[] = [
   },
 ];
 
+// ---- compatibility-surface jobs -------------------------------------------
+// Each exercises one of the mustache.js compatibility surfaces (Writer, Context,
+// Scanner, the 4th config arg, partials-as-function, custom escape, cache churn)
+// through a realistic consumer pattern, moose vs mustache.js. `moose`/`mustache`
+// are the timed closures; reusable objects (a Writer, a Context, a parsed template)
+// are built once outside the closure where a real consumer would reuse them.
+
+type SurfaceJob = {
+  name: string;
+  moose: () => string;
+  mustache: () => string | null; // null = surface unsupported by mustache.js
+  iters: number;
+  note: string;
+};
+
+const card = {
+  name: "Grace <Hopper>",
+  admin: true,
+  fields: [{ k: "team", v: "core" }, { k: "since", v: 1952 }, { k: "role", v: "captain" }],
+};
+const cardTpl = "<h2>{{name}}</h2>{{#admin}}<b>admin</b>{{/admin}}{{#fields}}{{k}}={{v}};{{/fields}}";
+
+// Writer: reused isolated caches (one per engine), constructed once.
+const mooseWriter = new MooseWriter();
+const mustWriter = new Mustache.Writer();
+
+// Context: a prebuilt view chain (outer site frame + the card), read from both frames.
+const ctxTpl = "{{site}}:{{name}}{{#fields}} {{k}}{{/fields}}";
+const mooseCtx = new MooseContext({ site: "moose" }).push(card);
+const mustCtx = new (Mustache as unknown as { Context: new (v: unknown, p?: unknown) => { push(v: unknown): unknown } }).Context({ site: "moose" }).push(card);
+
+// Scanner: tokenize a template string, counting tag-body characters.
+const scanText = cardTpl.repeat(6);
+function scanWith(make: (s: string) => { eos(): boolean; scan(re: RegExp): string; scanUntil(re: RegExp): string }): string {
+  const s = make(scanText);
+  let n = 0;
+  while (!s.eos()) {
+    s.scanUntil(/\{\{/);
+    if (s.eos()) break;
+    s.scan(/\{\{/);
+    n += s.scanUntil(/\}\}/).length;
+    s.scan(/\}\}/);
+  }
+  return String(n);
+}
+
+// config: per-call custom delimiters.
+const altTpl = "<h2><%name%></h2><%#admin%><b>admin</b><%/admin%><%#fields%><%k%>=<%v%>;<%/fields%>";
+// config: per-call custom escape (identity — measures the escape-swap path).
+const identEscape = (s: unknown) => String(s);
+
+// partials as a function (not a map).
+const partMap: Record<string, string> = { header: "<h1>{{name}}</h1>", row: "{{k}}={{v}}" };
+const partFn = (n: string): string => partMap[n];
+const partTpl = "{{>header}}{{#fields}}{{>row}};{{/fields}}";
+
+// cache churn: many unique template strings, clearCache periodically.
+let mk = 0, muk = 0;
+
+const SURFACE_JOBS: SurfaceJob[] = [
+  {
+    name: "Writer (own cache)",
+    moose: () => mooseWriter.render(cardTpl, card),
+    mustache: () => mustWriter.render(cardTpl, card),
+    iters: 100_000,
+    note: "render through an isolated Writer with its own template cache",
+  },
+  {
+    name: "Context (prebuilt chain)",
+    moose: () => moose(ctxTpl, mooseCtx),
+    mustache: () => Mustache.render(ctxTpl, mustCtx as unknown as object),
+    iters: 100_000,
+    note: "render over a prebuilt Context view-chain (outer frame + card)",
+  },
+  {
+    name: "Scanner (tokenize)",
+    moose: () => scanWith((s) => new MooseScanner(s)),
+    mustache: () => scanWith((s) => new (Mustache as unknown as { Scanner: new (s: string) => { eos(): boolean; scan(re: RegExp): string; scanUntil(re: RegExp): string } }).Scanner(s)),
+    iters: 50_000,
+    note: "tokenize a template string with the Scanner primitive",
+  },
+  {
+    name: "config: custom tags",
+    moose: () => moose(altTpl, card, {}, { tags: ["<%", "%>"] }),
+    mustache: () => Mustache.render(altTpl, card, {}, { tags: ["<%", "%>"] }),
+    iters: 100_000,
+    note: "per-call custom delimiters via the 4th config arg",
+  },
+  {
+    name: "config: custom escape",
+    moose: () => moose(cardTpl, card, {}, { escape: identEscape }),
+    mustache: () => Mustache.render(cardTpl, card, {}, { escape: identEscape }),
+    iters: 100_000,
+    note: "per-call custom escape function via config",
+  },
+  {
+    name: "partials as function",
+    moose: () => moose(partTpl, card, partFn),
+    mustache: () => Mustache.render(partTpl, card, partFn as unknown as Record<string, string>),
+    iters: 100_000,
+    note: "partials resolved by a function, not a name→source map",
+  },
+  {
+    name: "cache churn + clearCache",
+    moose: () => {
+      const t = `<p>{{name}} #${mk++ & 511}</p>`;
+      const out = moose(t, card);
+      if ((mk & 511) === 0) mooseDefault.clearCache();
+      return out;
+    },
+    mustache: () => {
+      const t = `<p>{{name}} #${muk++ & 511}</p>`;
+      const out = Mustache.render(t, card);
+      if ((muk & 511) === 0) Mustache.clearCache();
+      return out;
+    },
+    iters: 60_000,
+    note: "512 unique template strings cycling, clearCache each cycle (unbounded-cache guard)",
+  },
+];
+
 // ---- run ------------------------------------------------------------------
 
 function renderMustache(j: Job): string {
@@ -220,9 +347,26 @@ for (const j of JOBS) {
   const parity = st === "match" ? "  ✓ match" : st === "diverge" ? "  ~ differ" : "  ✗ n/a  ";
   console.log(`  ${j.name.padEnd(26)} ${parity}  ${us(moosePer).padStart(8)}   ${muCol}   ${speed.padStart(10)}`);
 }
+console.log(`  ── COMPAT SURFACES ${"─".repeat(58)}`);
+for (const j of SURFACE_JOBS) {
+  let mo: string | null = null, mu: string | null = null;
+  try { mo = j.moose(); } catch { mo = null; }
+  try { mu = j.mustache(); } catch { mu = null; }
+  const st: "match" | "diverge" | "unsupported" = mu === null ? "unsupported" : mo === mu ? "match" : "diverge";
+  const moosePer = time(() => { sink += j.moose().length; }, j.iters);
+  let muCol = "        —", speed = "moose-only";
+  if (mu !== null) {
+    const mustPer = time(() => { const r = j.mustache(); sink += (r ?? "").length; }, j.iters);
+    muCol = us(mustPer).padStart(9);
+    speed = (mustPer / moosePer).toFixed(2) + "×";
+  }
+  const parity = st === "match" ? "  ✓ match" : st === "diverge" ? "  ~ differ" : "  ✗ n/a  ";
+  console.log(`  ${j.name.padEnd(26)} ${parity}  ${us(moosePer).padStart(8)}   ${muCol}   ${speed.padStart(10)}`);
+}
 if (sink < 0) console.log("");
 
 console.log("\n  parity: ✓ identical output · ~ engines differ (see notes) · ✗ mustache.js cannot render");
 console.log("  speed:  mustache-µs ÷ moose-µs  (>1 = moose faster).  Both engines cache parses.");
 console.log("\n  Notes:");
 for (const j of JOBS) if (j.note) console.log(`    ${j.name.padEnd(26)} ${j.note}`);
+for (const j of SURFACE_JOBS) console.log(`    ${j.name.padEnd(26)} ${j.note}`);

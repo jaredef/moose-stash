@@ -10,8 +10,11 @@ injection**, and a **drop-in** for [mustache.js](https://github.com/janl/mustach
   partial names, which `mustache` doesn't have.
 - **Safe by default.** A lambda's return value is always literal text and is **never**
   re-parsed as a template — closing the server-side template-injection surface.
-- **Drop-in.** Reproduces **all 62** of mustache.js's own fixtures, byte for byte.
-- **Typed.** Written in TypeScript.
+- **Drop-in.** The same public surface as mustache.js — `render` (with the `config`
+  argument), `parse`, `escape`, `tags`, `clearCache`, `templateCache`, and the `Writer`,
+  `Context`, and `Scanner` classes — and it reproduces **all 62** of mustache.js's own
+  fixtures byte for byte. Swap `require("mustache")` for `require("moose-stash")`.
+- **Typed.** Written in TypeScript; type declarations ship with the package.
 
 ## vs. mustache.js
 
@@ -60,13 +63,47 @@ render("{{> header}} {{body}}", { title: "Hi", body: "…" }, { header: "[{{titl
 
 ### API
 
+The surface mirrors mustache.js, so existing code works unchanged:
+
 ```ts
-render(template: string, data: unknown, partials?: Record<string, string>): string
+render(template: string, view: unknown,
+       partials?: Record<string, string> | ((name: string) => string | undefined),
+       config?: [string, string] | { tags?: [string, string]; escape?: (s: unknown) => string }
+): string
+
+parse(template: string, tags?: [string, string]): Token[]  // parse + prime the cache
+clearCache(): void                                          // empty the parse cache
+
+escape: (s: unknown) => string   // mutable — the default HTML escape
+tags: [string, string]           // mutable — the default delimiters, ["{{", "}}"]
+templateCache                    // set to undefined to disable caching
+version: string
+name: string
+
+class Writer   // an isolated engine with its own template cache
+class Context  // a view + parent chain: new Context(view).push(child), .lookup(name)
+class Scanner  // an incremental scanner: .scan(re), .scanUntil(re), .eos(), .tail
+```
+
+```js
+// the 4th `config` argument: custom delimiters and/or a custom escape
+render("Hi <%name%>", { name: "Ann" }, {}, { tags: ["<%", "%>"] });   // → "Hi Ann"
+render("{{x}}", { x: "a&b" }, {}, { escape: (s) => String(s) });       // → "a&b"
+
+// partials as a resolver function
+render("{{> row}}", view, (name) => loadPartial(name));
+
+// an isolated writer with its own cache
+const w = new Writer();
+w.render("{{greeting}}", { greeting: "hi" });
 ```
 
 `{{name}}` HTML-escapes its value; `{{{name}}}` and `{{&name}}` emit it raw. A value may
 be a function: `{{fn}}` renders `fn()`; `{{#fn}}…{{/fn}}` calls `fn(rawText, render)` and
 the `render` callback re-renders template-author text on demand.
+
+Like mustache.js, a malformed template throws: an unterminated tag throws `Unclosed tag
+at N`, and a non-string template throws a `TypeError`.
 
 ## Features
 

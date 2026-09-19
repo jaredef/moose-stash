@@ -1,6 +1,6 @@
 {
   "name": "moose-stash",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A tiny, fast, logic-less Mustache template engine — spec-conformant and safe against lambda template injection by construction. Zero dependencies.",
   "type": "module",
   "exports": {
