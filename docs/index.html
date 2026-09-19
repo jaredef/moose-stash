@@ -233,6 +233,17 @@
     .speed { grid-column: 1 / -1; }
     .parity { justify-self: start; }
   }
+  @media (max-width: 600px) {
+    /* spec-by-module: stack each row so the bars stop colliding with the name */
+    .specgrid.thead2 { display: none; }
+    .specrow { grid-template-columns: 1fr; gap: 9px; padding: 14px 16px; }
+    .specrow .mod { font-size: 14px; }
+    .cell { gap: 9px; }
+    .cell::before { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); flex: 0 0 62px; }
+    .cell.moose::before { content: "moose"; }
+    .cell.mu::before { content: "mustache"; }
+    .cnt { min-width: 52px; }
+  }
   [hidden] { display: none !important; }
 </style>
 
