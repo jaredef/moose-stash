@@ -183,18 +183,21 @@
     font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint);
     display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .cardhead b { color: var(--moose); font-weight: 600; }
-  .specgrid { display: grid; grid-template-columns: minmax(0,1.3fr) 1fr 1fr; align-items: center; gap: 18px; }
+  .specgrid { display: grid; grid-template-columns: minmax(0,1fr) 2.4fr auto; align-items: center; gap: 18px; }
   .thead2 { padding: 12px 20px; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--line); }
   .specrow { padding: 12px 20px; border-bottom: 1px solid var(--line); }
   .specrow:last-child { border-bottom: none; }
   .specrow .mod { font-weight: 600; font-size: 14px; }
-  .cell { display: flex; align-items: center; gap: 10px; }
-  .minibar { flex: 1; height: 7px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 40px; }
-  .minibar .fill { height: 100%; background: var(--moose); border-radius: 999px; }
-  .minibar .fill.mu { background: var(--mustache); }
-  .cnt { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 78px; text-align: right; color: var(--muted); }
-  .cell.moose .cnt { color: var(--ink); font-weight: 600; }
-  .cnt .dec { color: var(--faint); }
+  /* one track: green moose base, gold mustache layered on top; the green tail
+     past the gold is exactly where moose-stash covers more than mustache.js */
+  .ovbar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .ovfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+  .ovfill.moose { background: var(--moose); }
+  .ovfill.mu { background: var(--mustache); }
+  .ovcnt { display: flex; gap: 12px; justify-content: flex-end; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .c-mo { color: var(--ink); font-weight: 600; }
+  .c-mu { color: var(--mustache); }
+  .c-mo .dec { color: var(--faint); }
   .exgrid { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px 20px; }
   .exchip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
     color: var(--muted); background: var(--moose-fill); border: 1px solid color-mix(in srgb, var(--moose) 24%, transparent);
@@ -238,11 +241,7 @@
     .specgrid.thead2 { display: none; }
     .specrow { grid-template-columns: 1fr; gap: 9px; padding: 14px 16px; }
     .specrow .mod { font-size: 14px; }
-    .cell { gap: 9px; }
-    .cell::before { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); flex: 0 0 62px; }
-    .cell.moose::before { content: "moose"; }
-    .cell.mu::before { content: "mustache"; }
-    .cnt { min-width: 52px; }
+    .ovcnt { justify-content: flex-start; }
   }
   [hidden] { display: none !important; }
 </style>
@@ -338,7 +337,7 @@
 
   <div class="card">
     <div class="cardhead"><span>Mustache spec — by module</span><span><b>moose 190/194</b> · mustache 142/194</span></div>
-    <div class="specgrid thead2"><div>Module</div><div>moose-stash</div><div>mustache.js</div></div>
+    <div class="specgrid thead2"><div>Module</div><div>Coverage · <span style="color:var(--moose)">green = moose</span>, <span style="color:var(--mustache)">gold = mustache.js</span></div><div style="text-align:right">passing</div></div>
     <div id="spec-rows"></div>
   </div>
 
@@ -453,8 +452,8 @@
     var moLabel = s.mo + "/" + s.t + (s.dec ? ' <span class="dec">+' + s.dec + '</span>' : "");
     row.innerHTML =
       '<div class="mod">' + s.m + '</div>' +
-      '<div class="cell moose"><div class="minibar"><div class="fill" style="width:' + (s.mo/s.t*100) + '%"></div></div><span class="cnt">' + moLabel + '</span></div>' +
-      '<div class="cell mu"><div class="minibar"><div class="fill mu" style="width:' + (s.mu/s.t*100) + '%"></div></div><span class="cnt">' + s.mu + '/' + s.t + '</span></div>';
+      '<div class="ovbar"><div class="ovfill moose" style="width:' + (s.mo/s.t*100) + '%"></div><div class="ovfill mu" style="width:' + (s.mu/s.t*100) + '%"></div></div>' +
+      '<div class="ovcnt"><span class="c-mo">' + moLabel + '</span><span class="c-mu">' + s.mu + '/' + s.t + '</span></div>';
     specEl.appendChild(row);
   });
 
