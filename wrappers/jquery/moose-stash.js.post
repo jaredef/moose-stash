@@ -1,0 +1,12 @@
+
+  $.mooseStash = function (template, view, partials) {
+    return MooseStash.render(template, view, partials);
+  };
+
+  $.fn.mooseStash = function (view, partials) {
+    return $(this).map(function (i, el) {
+      return $($.mooseStash($.trim($(el).html()), view, partials)).get();
+    });
+  };
+
+})(jQuery);

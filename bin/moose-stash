@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+"use strict";
+
+// moose-stash CLI — render a template file against a view, with optional partials, to
+// stdout or a file.
+//
+//   moose-stash <view> <template> [output]
+//   moose-stash -p <partial> [-p <partial> ...] <view> <template> [output]
+//   moose-stash --version
+
+var fs = require("fs");
+var path = require("path");
+var MooseStash = require("..");
+var version = require("../package.json").version;
+
+function die(message) {
+  process.stderr.write(message + "\n");
+  process.exit(1);
+}
+
+function readFile(file) {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch (e) {
+    if (e && e.code === "ENOENT") die("Could not find file: " + file);
+    return die("Could not read file: " + file + " — " + e.message);
+  }
+}
+
+function parseJSON(text, source) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return die("Could not parse view as JSON (" + source + "). Views must be valid " +
+      "JSON, or a .js/.cjs module for functions.\n" + e.message);
+  }
+}
+
+// view sources: '-' is JSON on stdin; a .js/.cjs path is loaded as a module (may hold
+// functions); any other path is a JSON file.
+function loadView(arg) {
+  if (arg === "-") return parseJSON(fs.readFileSync(0, "utf8"), "stdin");
+  var ext = path.extname(arg);
+  if (ext === ".js" || ext === ".cjs") return require(path.resolve(process.cwd(), arg));
+  return parseJSON(readFile(arg), arg);
+}
+
+// a partial's name is its filename without the .mustache extension
+function loadPartials(paths) {
+  var partials = {};
+  for (var i = 0; i < paths.length; i++) {
+    partials[path.basename(paths[i], ".mustache")] = readFile(paths[i]);
+  }
+  return partials;
+}
+
+function main(argv) {
+  var args = argv.slice(2);
+
+  if (args.indexOf("-v") !== -1 || args.indexOf("--version") !== -1) {
+    process.stdout.write(version + "\n");
+    return;
+  }
+
+  // pull out each repeated `-p <path>` pair, leaving only positionals
+  var partialPaths = [];
+  for (var i = 0; i < args.length; i++) {
+    if (args[i] === "-p") {
+      if (i + 1 >= args.length) die("Missing partial path after -p");
+      partialPaths.push(args[i + 1]);
+      args.splice(i, 2);
+      i--;
+    }
+  }
+
+  var viewArg = args[0];
+  var templateArg = args[1];
+  var outputArg = args[2];
+  if (!viewArg || !templateArg) {
+    die("Usage: moose-stash <view> <template> [output]   (-p <partial> to add partials)");
+  }
+
+  var view = loadView(viewArg);
+  var partials = loadPartials(partialPaths);
+  var template = readFile(templateArg);
+  var output = MooseStash.render(template, view, partials);
+
+  // to the output file if given, else stdout; no newline added
+  if (outputArg) fs.writeFileSync(outputArg, output);
+  else process.stdout.write(output);
+}
+
+main(process.argv);

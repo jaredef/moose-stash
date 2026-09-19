@@ -1,0 +1,35 @@
+// qooxdoo: qx.bom.Template.render(template, view, partials), plus renderToNode/get to
+// produce DOM nodes. The engine source is concatenated after this; render is bound in
+// the .post.
+qx.Bootstrap.define("qx.bom.Template", {
+  statics: {
+    version: null,
+    render: null, // set from the engine below
+
+    // render, then return the result as a DOM node (single root element)
+    renderToNode: function (template, view, partials) {
+      return this._createNodeFromTemplate(this.render(template, view, partials));
+    },
+
+    // render the template stored as the innerHTML of element #id
+    get: function (id, view, partials) {
+      var el = document.getElementById(id);
+      return this.renderToNode(el.innerHTML, view, partials);
+    },
+
+    // rendered markup -> DOM node (a text node when there is no markup)
+    _createNodeFromTemplate: function (html) {
+      if (html.search(/<|>/) === -1) {
+        return document.createTextNode(html);
+      }
+      var helper = qx.dom.Element.create("div");
+      helper.innerHTML = html;
+      return helper.children[0];
+    }
+  }
+});
+
+(function () {
+// hide the CommonJS/AMD hooks so the engine registers on the global
+var exports;
+var define;

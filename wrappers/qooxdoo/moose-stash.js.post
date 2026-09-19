@@ -1,0 +1,5 @@
+
+// bind the engine (registered on the global above) into the class
+qx.bom.Template.render = this.MooseStash.render;
+
+}).call(typeof globalThis !== "undefined" ? globalThis : this);

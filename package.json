@@ -26,7 +26,10 @@
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
     "test": "node --experimental-strip-types test/conformance.ts --all",
-    "security": "node --experimental-strip-types test/security.ts"
+    "security": "node --experimental-strip-types test/security.ts",
+    "dropin": "node --experimental-strip-types test/dropin.ts",
+    "bench": "node --experimental-strip-types bench/bench.ts",
+    "moosebench": "node --experimental-strip-types bench/moosebench.ts"
   },
   "keywords": [
     "mustache",
@@ -45,6 +48,7 @@
   "author": "Jared Foy",
   "license": "MIT",
   "devDependencies": {
+    "mustache": "^4.2.0",
     "typescript": "^5.6.0"
   }
 }

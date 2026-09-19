@@ -1,0 +1,3 @@
+// jQuery: $.mooseStash(template, view, partials); and $.fn.mooseStash to render
+// each selected element's own HTML as a template.
+(function ($) {

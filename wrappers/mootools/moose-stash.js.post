@@ -1,0 +1,6 @@
+
+  Object.implement("mooseStash", function (template, partials) {
+    return MooseStash.render(template, this, partials);
+  });
+
+})();

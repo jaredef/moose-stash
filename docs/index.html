@@ -1,0 +1,465 @@
+<meta charset="utf-8" />
+<title>MooseBench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+
+<style>
+  :root {
+    --bg: #f4f6f1;
+    --surface: #ffffff;
+    --surface-2: #eaeee3;
+    --ink: #171b12;
+    --muted: #5f664f;
+    --faint: #868c72;
+    --line: #dde1d2;
+    --line-strong: #cbd1bb;
+    --moose: #2e7d4f;
+    --moose-fill: #e3f0e7;
+    --mustache: #b6851a;
+    --mustache-fill: #f3ead0;
+    --good: #2e7d4f;
+    --warn: #b8532a;
+    --only: #6a58c9;
+    --shadow: 0 1px 2px rgba(20, 30, 15, .05), 0 8px 24px rgba(20, 30, 15, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11140d;
+      --surface: #1a1e14;
+      --surface-2: #232819;
+      --ink: #edf0e4;
+      --muted: #9ba088;
+      --faint: #767c64;
+      --line: #2b3120;
+      --line-strong: #3a4029;
+      --moose: #63bd86;
+      --mustache: #e2ba54;
+      --good: #63bd86;
+      --warn: #e6926a;
+      --only: #a493f2;
+      --moose-fill: #1e2c22;
+      --mustache-fill: #2c2716;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11140d;
+    --surface: #1a1e14;
+    --surface-2: #232819;
+    --ink: #edf0e4;
+    --muted: #9ba088;
+    --faint: #767c64;
+    --line: #2b3120;
+    --line-strong: #3a4029;
+    --moose: #63bd86;
+    --mustache: #e2ba54;
+    --good: #63bd86;
+    --warn: #e6926a;
+    --only: #a493f2;
+    --moose-fill: #1e2c22;
+    --mustache-fill: #2c2716;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 40px 64px;
+  }
+
+  /* ---- header ---- */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px 28px; justify-content: space-between; }
+  .lede { max-width: 60ch; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--moose); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(34px, 6vw, 52px);
+    letter-spacing: -.02em; line-height: 1.02; margin: 0; text-wrap: balance;
+  }
+  h1 .vs { color: var(--faint); font-weight: 600; }
+  h1 .mu { color: var(--mustache); }
+  .sub { color: var(--muted); margin: 14px 0 0; font-size: 15.5px; }
+  .runbtn {
+    font-family: "Archivo", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: .01em;
+    color: #fff; background: var(--moose); border: none; border-radius: 10px;
+    padding: 12px 20px; cursor: pointer; box-shadow: var(--shadow);
+    display: inline-flex; align-items: center; gap: 9px; transition: transform .12s ease, filter .12s ease;
+  }
+  .runbtn:hover { filter: brightness(1.06); }
+  .runbtn:active { transform: translateY(1px); }
+  .runbtn:disabled { opacity: .6; cursor: progress; }
+  .runbtn:focus-visible { outline: 2px solid var(--moose); outline-offset: 2px; }
+  .envchip {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 500; letter-spacing: .02em;
+    color: var(--muted); background: var(--surface); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 13px; white-space: nowrap; align-self: flex-end;
+  }
+
+  /* ---- summary tiles ---- */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 30px 0 8px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 18px 16px; box-shadow: var(--shadow);
+  }
+  .tile .k { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; }
+  .tile .v { font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(26px, 4vw, 34px); letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .v small { font-size: .5em; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+  .tile .d { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  .tile.hero .v { color: var(--moose); }
+
+  /* ---- table ---- */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; margin-top: 22px; }
+  .thead, .row { display: grid; grid-template-columns: minmax(0,2.4fr) .9fr .8fr .8fr 1.7fr; align-items: center; gap: 14px; }
+  .thead {
+    padding: 13px 20px; border-bottom: 1px solid var(--line-strong);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint);
+    background: var(--surface-2);
+  }
+  .thead .num, .row .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .group { padding: 11px 20px 9px; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); background: transparent; border-bottom: 1px solid var(--line); }
+  .row { padding: 15px 20px; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: none; }
+  .job .name { font-weight: 600; font-size: 15px; }
+  .job .tmpl { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .parity { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .parity.match { color: var(--good); background: var(--moose-fill); }
+  .parity.diverge { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .parity.only { color: var(--only); background: color-mix(in srgb, var(--only) 15%, transparent); }
+  .parity .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .parity.pending { color: var(--faint); background: var(--surface-2); }
+
+  .num { font-family: "IBM Plex Mono", monospace; font-size: 13.5px; }
+  .num .u { color: var(--faint); font-size: 11px; }
+  .num.moose { color: var(--ink); font-weight: 600; }
+  .num.mu { color: var(--muted); }
+
+  .speed { display: flex; align-items: center; gap: 11px; }
+  .track { position: relative; flex: 1; height: 9px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 60px; }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--moose); transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .track .fill.slow { background: var(--mustache); }
+  .track .tick { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1.5px; background: var(--line-strong); }
+  .mult { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 13.5px; min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+  .mult.fast { color: var(--moose); }
+  .mult.slow { color: var(--mustache); }
+  .mult.na { color: var(--faint); font-weight: 500; }
+
+  /* ---- lines-of-code comparison ---- */
+  .loc { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 20px 18px; margin-top: 14px; }
+  .loc-t { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); margin: 0 0 14px; }
+  .loc-t code { text-transform: none; letter-spacing: 0; }
+  .loc-bars { display: grid; gap: 11px; }
+  .loc-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; margin-bottom: 5px; }
+  .loc-name { font-weight: 600; }
+  .loc-n { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .loc-n small { color: var(--faint); font-weight: 500; font-size: 11px; }
+  .loc-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .loc-fill { height: 100%; border-radius: 999px; }
+  .loc-fill.moose { background: var(--moose); }
+  .loc-fill.mu { background: var(--mustache); }
+  .loc-cap { font-size: 12.5px; color: var(--muted); margin: 13px 0 0; }
+
+  /* ---- correctness section ---- */
+  .sectionlabel { margin: 46px 0 0; }
+  .sectionlabel h2 { font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(24px, 4.2vw, 32px); letter-spacing: -.02em; margin: 8px 0 0; text-wrap: balance; }
+  .sub2 { color: var(--muted); margin: 11px 0 0; font-size: 15px; max-width: 72ch; }
+  .tiles.two { grid-template-columns: repeat(2, 1fr); }
+  .cardhead { padding: 14px 20px; border-bottom: 1px solid var(--line-strong); background: var(--surface-2);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .cardhead b { color: var(--moose); font-weight: 600; }
+  .specgrid { display: grid; grid-template-columns: minmax(0,1.3fr) 1fr 1fr; align-items: center; gap: 18px; }
+  .thead2 { padding: 12px 20px; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--line); }
+  .specrow { padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .specrow:last-child { border-bottom: none; }
+  .specrow .mod { font-weight: 600; font-size: 14px; }
+  .cell { display: flex; align-items: center; gap: 10px; }
+  .minibar { flex: 1; height: 7px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 40px; }
+  .minibar .fill { height: 100%; background: var(--moose); border-radius: 999px; }
+  .minibar .fill.mu { background: var(--mustache); }
+  .cnt { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 78px; text-align: right; color: var(--muted); }
+  .cell.moose .cnt { color: var(--ink); font-weight: 600; }
+  .cnt .dec { color: var(--faint); }
+  .exgrid { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px 20px; }
+  .exchip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+    color: var(--muted); background: var(--moose-fill); border: 1px solid color-mix(in srgb, var(--moose) 24%, transparent);
+    border-radius: 7px; padding: 4px 8px; }
+  .exchip .tk { color: var(--good); font-weight: 700; }
+  .exchip { padding: 4px 9px; }
+  .exname { color: var(--muted); }
+  .exsp { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .exsp.fast { color: var(--moose); }
+  .exsp.slow { color: var(--mustache); }
+  .ext { color: var(--moose); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  .ext:hover { text-decoration-thickness: 2px; }
+  .ext:focus-visible { outline: 2px solid var(--moose); outline-offset: 2px; border-radius: 3px; }
+  .cardhead .ext { color: inherit; font-weight: inherit; text-decoration-color: color-mix(in srgb, var(--moose) 55%, transparent); }
+  .cardhead .ext:hover { color: var(--moose); }
+  .fn { color: var(--moose); font-weight: 700; font-size: .7em; }
+  .finenote { font-size: 12px; line-height: 1.55; color: var(--faint); margin: 13px 4px 0; max-width: 82ch; }
+  .finenote .star { color: var(--moose); font-weight: 700; }
+  .dag { color: var(--mustache) !important; }
+  .finenote code { font-size: .92em; color: var(--muted); }
+  .finenote em { font-style: italic; color: var(--muted); }
+  .only-note { font-family: "IBM Plex Sans"; font-size: 12.5px; color: var(--only); font-weight: 600; }
+
+  footer { margin-top: 22px; color: var(--faint); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  footer .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  footer .sw { width: 10px; height: 10px; border-radius: 3px; }
+  code { font-family: "IBM Plex Mono", monospace; font-size: .92em; }
+
+  @media (max-width: 720px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .thead { display: none; }
+    .row { grid-template-columns: 1fr 1fr; gap: 8px 14px; padding: 15px 16px; }
+    .job { grid-column: 1 / -1; }
+    .row .num.moose::before { content: "moose "; color: var(--faint); font-family: "IBM Plex Sans"; }
+    .row .num.mu::before { content: "mustache "; color: var(--faint); font-family: "IBM Plex Sans"; }
+    .speed { grid-column: 1 / -1; }
+    .parity { justify-self: start; }
+  }
+  [hidden] { display: none !important; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="lede">
+      <p class="eyebrow">moosebench · Node benchmark</p>
+      <h1>moose&#8209;stash <span class="vs">vs</span> <span class="mu">mustache.js</span></h1>
+      <p class="sub">Results from <code>npm run moosebench</code> — the same templating jobs, each rendered by both
+        engines to confirm <strong>identical output</strong>, then timed on Node. Green past the <code>1&times;</code> line means moose-stash is faster.</p>
+    </div>
+    <span class="envchip" id="envchip">Node v22.22.3</span>
+  </header>
+
+  <div class="tiles">
+    <div class="tile hero">
+      <p class="k">Throughput</p>
+      <div class="v" id="t-speed">—</div>
+      <p class="d" id="t-speed-d">faster on every comparable job</p>
+    </div>
+    <div class="tile">
+      <p class="k">Output parity</p>
+      <div class="v" id="t-parity">—</div>
+      <p class="d">"byte-for-byte" identical renders<sup class="fn dag">†</sup></p>
+    </div>
+    <div class="tile">
+      <p class="k">Peak speed</p>
+      <div class="v" id="t-peak">—</div>
+      <p class="d" id="t-peak-d">on the deepest job</p>
+    </div>
+    <div class="tile">
+      <p class="k">Moose-only</p>
+      <div class="v" id="t-only">—</div>
+      <p class="d">jobs mustache.js can't run</p>
+    </div>
+  </div>
+
+  <div class="loc">
+    <p class="loc-t">Lines of code — packaged script (<code>moose-stash.js</code> vs <code>mustache.js</code>)</p>
+    <div class="loc-bars">
+      <div>
+        <div class="loc-meta"><span class="loc-name">moose-stash</span><span class="loc-n">441 <small>LoC</small></span></div>
+        <div class="loc-track"><div class="loc-fill moose" style="width:96.5%"></div></div>
+      </div>
+      <div>
+        <div class="loc-meta"><span class="loc-name">mustache.js 4.2</span><span class="loc-n">457 <small>LoC</small></span></div>
+        <div class="loc-track"><div class="loc-fill mu" style="width:100%"></div></div>
+      </div>
+    </div>
+    <p class="loc-cap">Fewer lines, wider coverage — moose-stash also implements template inheritance, dynamic partial names, and render-callback lambdas, which mustache.js does not. Zero runtime dependencies, like mustache.js.</p>
+  </div>
+
+  <div class="card">
+    <div class="thead">
+      <div>Job</div>
+      <div>Parity</div>
+      <div class="num">moose µs</div>
+      <div class="num">mustache µs</div>
+      <div>Speed</div>
+    </div>
+    <div id="rows"></div>
+  </div>
+
+  <p class="finenote"><span class="star">*</span> All render timings — the workload jobs above and the test suite below —
+    were measured on <strong>Node.js v22.22.3</strong> (V8), each figure the fastest of several timed windows.</p>
+
+  <p class="finenote"><span class="star dag">†</span> Output parity is the 10 common and hard jobs above — real templates
+    (an HTML table, a page layout, a transactional email, deeply-nested sections, …) each rendered by both engines and
+    compared character-for-character. Their templates and data are moose-stash's own
+    <a class="ext" href="https://github.com/jaredef/moose-stash/blob/main/bench/moosebench.ts" target="_blank" rel="noopener noreferrer">moosebench workload</a>.</p>
+
+  <div class="sectionlabel">
+    <p class="eyebrow">Correctness</p>
+    <h2>Identical output, broader coverage</h2>
+    <p class="sub2">Two example corpora: the official <strong>Mustache spec</strong>, and
+      <a class="ext" href="https://github.com/janl/mustache.js/tree/master/test/_files" target="_blank" rel="noopener noreferrer">mustache.js's own test suite</a>.
+      moose-stash reproduces every mustache.js fixture "byte-for-byte", and passes spec modules mustache.js doesn't implement.</p>
+  </div>
+
+  <div class="tiles two">
+    <div class="tile hero">
+      <p class="k">Spec conformance</p>
+      <div class="v">190<small>/194 · +4 declined<sup class="fn">*</sup></small></div>
+      <p class="d">mustache.js: 142 / 194</p>
+    </div>
+    <div class="tile">
+      <p class="k">Test suite</p>
+      <div class="v">62<small>/62</small></div>
+      <p class="d"><a class="ext" href="https://github.com/janl/mustache.js/tree/master/test/_files" target="_blank" rel="noopener noreferrer">mustache.js's test suite</a> — "byte-for-byte" identical</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><span>Mustache spec — by module</span><span><b>moose 190/194</b> · mustache 142/194</span></div>
+    <div class="specgrid thead2"><div>Module</div><div>moose-stash</div><div>mustache.js</div></div>
+    <div id="spec-rows"></div>
+  </div>
+
+  <p class="finenote"><span class="star">*</span> The 4 declined are the spec's lambda <em>re-render</em> cases (<code>lambdas</code> row above).
+    moose-stash never re-parses a lambda's return value as a template — doing so would let user text returned from a lambda become live
+    tags like <code>{{secret}}</code> or <code>{{&gt; admin}}</code>, a server-side template-injection surface — so it emits the safe literal
+    output by design instead of expanding the returned tags. They are declines, not failures: the engine still produces correct, safe text.
+    (mustache.js 4.2 doesn't implement these either — it passes 2 of the 10 lambda cases.)</p>
+
+  <div class="card">
+    <div class="cardhead"><span><a class="ext" href="https://github.com/janl/mustache.js/tree/master/test/_files" target="_blank" rel="noopener noreferrer">mustache.js test suite</a></span><span><b>62 / 62 identical</b> · moose faster on <b>62 / 62</b>, median <b>1.32×</b></span></div>
+    <div class="exgrid" id="ex-rows"></div>
+  </div>
+
+  <footer>
+    <span class="swatch"><span class="sw" style="background:var(--moose)"></span> moose-stash</span>
+    <span class="swatch"><span class="sw" style="background:var(--mustache)"></span> mustache.js 4.2.0</span>
+    <span>· measured on Node v22.22.3 (V8)</span>
+    <span>Lower µs is faster; each figure is per render — the fastest of several timed windows.</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // Static results from `npm run moosebench` on Node v22.22.3 (min-of-N windows).
+  var DATA = [
+    {name:"greeting", group:"common", template:"Hello, {{name}}! You have {{count}} new {{#one}}message{{/one}}…", status:"match", mo:0.51, mu:0.57},
+    {name:"user-card (HTML)", group:"common", template:'<div class="card"> <h2>{{name}}</h2> <p class="bio">{{bio}}</p>…', status:"match", mo:1.74, mu:2.19},
+    {name:"table-100 (HTML)", group:"common", template:'<table> <thead>… {{#rows}}<tr class="{{#active}}…"><td>{{n}}</td>…', status:"match", mo:78.08, mu:78.89},
+    {name:"layout (partials)", group:"common", template:"{{> header}} <main> {{> nav}} <article>{{{body}}}</article> {{> footer}}", status:"match", mo:1.92, mu:2.16},
+    {name:"email (mixed)", group:"common", template:"Hi {{name}}, {{#premium}}Thanks…{{/premium}} {{#items}}- {{title}}…", status:"match", mo:1.96, mu:2.49},
+    {name:"deep-context (6 levels)", group:"hard", template:"{{#a}}{{top}}|{{#b}}{{top}}{{mid}}|{{#c}}{{top}}{{mid}}{{deep}}…", status:"match", mo:3.55, mu:5.91},
+    {name:"big-list-2000", group:"hard", template:"{{#rows}}{{n}}:{{name}}:{{email}}:{{#active}}A{{/active}}…{{/rows}}", status:"match", mo:1417.43, mu:1451.98},
+    {name:"recursive-tree (partial)", group:"hard", template:"{{> node}}   — self-recursive partial, 364 nodes", status:"match", mo:125.25, mu:158.95},
+    {name:"delimiter-switching", group:"hard", template:"{{=<% %>=}}<% greeting %>, <%={{ }}=%>{{name}}! {{=[[ ]]=}}[[ tail ]]", status:"match", mo:0.45, mu:0.67},
+    {name:"interpolation lambda", group:"hard", template:"{{salute}}, {{name}}!", status:"match", mo:0.35, mu:0.49},
+    {name:"section lambda (render-cb)", group:"hard", template:"{{#upper}}{{greeting}}{{/upper}} {{name}} {{#wrap}}note{{/wrap}}", status:"only", mo:0.79, mu:null},
+    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.9, mu:null}
+  ];
+
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function fmt(x){ return x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(2); }
+
+  var rowsEl = document.getElementById("rows");
+  var lastGroup = "";
+  DATA.forEach(function(j){
+    if (j.group !== lastGroup){
+      lastGroup = j.group;
+      var gr = document.createElement("div"); gr.className = "group";
+      gr.textContent = j.group === "common" ? "Common jobs" : "Hard jobs";
+      rowsEl.appendChild(gr);
+    }
+    var ratio = (j.status === "only" || j.mu == null) ? null : j.mu / j.mo;
+    var faster = ratio != null && ratio >= 1;
+    var parity = j.status === "match"
+        ? '<span class="parity match"><span class="dot"></span>identical</span>'
+        : j.status === "diverge"
+        ? '<span class="parity diverge"><span class="dot"></span>differs</span>'
+        : '<span class="parity only"><span class="dot"></span>moose-only</span>';
+    var muCell = (j.mu == null) ? '<span class="u">can’t render</span>' : fmt(j.mu) + ' <span class="u">µs</span>';
+    var speedCell;
+    if (ratio == null){
+      speedCell = '<div class="track"><div class="tick"></div><div class="fill" style="width:0"></div></div><div class="mult na">—</div>';
+    } else {
+      var pct = Math.max(2, Math.min(100, ratio / 2 * 100));
+      speedCell = '<div class="track"><div class="tick"></div><div class="fill ' + (faster ? "" : "slow") + '" style="width:' + pct + '%"></div></div>' +
+                  '<div class="mult ' + (faster ? "fast" : "slow") + '">' + ratio.toFixed(2) + '×</div>';
+    }
+    var r = document.createElement("div"); r.className = "row";
+    r.innerHTML =
+      '<div class="job"><div class="name">' + esc(j.name) + '</div><div class="tmpl">' + esc(j.template) + '</div></div>' +
+      '<div>' + parity + '</div>' +
+      '<div class="num moose">' + fmt(j.mo) + ' <span class="u">µs</span></div>' +
+      '<div class="num mu">' + muCell + '</div>' +
+      '<div class="speed">' + speedCell + '</div>';
+    rowsEl.appendChild(r);
+  });
+
+  var comp = DATA.filter(function(r){ return r.status !== "only"; });
+  var fasterCount = comp.filter(function(r){ return r.mu / r.mo >= 1; }).length;
+  var matches = comp.filter(function(r){ return r.status === "match"; }).length;
+  var only = DATA.filter(function(r){ return r.status === "only"; }).length;
+  var gm = Math.exp(comp.reduce(function(s,r){ return s + Math.log(r.mu / r.mo); }, 0) / comp.length);
+  var peak = comp.reduce(function(b,r){ return (r.mu / r.mo) > (b.mu / b.mo) ? r : b; }, comp[0]);
+
+  document.getElementById("t-speed").innerHTML = gm.toFixed(2) + '<small>× median<sup class="fn">*</sup></small>';
+  document.getElementById("t-speed-d").textContent = "faster on " + fasterCount + " of " + comp.length + " comparable jobs";
+  document.getElementById("t-parity").innerHTML = matches + ' <small>/ ' + comp.length + '</small>';
+  document.getElementById("t-peak").innerHTML = (peak.mu / peak.mo).toFixed(2) + '<small>×</small>';
+  document.getElementById("t-peak-d").textContent = "on " + peak.name;
+  document.getElementById("t-only").innerHTML = only + ' <small>/ ' + DATA.length + '</small>';
+
+  // ---- correctness: spec conformance (per module) + test suite ----
+  var SPEC = [
+    {m:"comments",t:12,mo:12,mu:12,dec:0},
+    {m:"delimiters",t:14,mo:14,mu:14,dec:0},
+    {m:"interpolation",t:42,mo:42,mu:41,dec:0},
+    {m:"inverted",t:22,mo:22,mu:22,dec:0},
+    {m:"partials",t:12,mo:12,mu:12,dec:0},
+    {m:"sections",t:34,mo:34,mu:34,dec:0},
+    {m:"dynamic-names",t:21,mo:21,mu:5,dec:0},
+    {m:"inheritance",t:27,mo:27,mu:0,dec:0},
+    {m:"lambdas",t:10,mo:6,mu:2,dec:4}
+  ];
+  var EXTIME={"ampersand_escape":[0.192,0.229],"apostrophe":[0.384,0.482],"array_of_strings":[0.373,0.568],"avoids_obj_prototype_in_view_cache":[0.28,0.559],"backslashes":[0.514,0.571],"bug_11_eating_whitespace":[0.205,0.293],"bug_length_property":[0.36,0.549],"changing_delimiters":[0.334,0.442],"check_falsy":[0.369,0.443],"cli":[0.237,0.325],"cli_js_view_with_function":[0.489,0.605],"comments":[0.346,0.419],"complex":[1.747,2.437],"context_lookup":[0.408,0.517],"delimiters":[0.641,0.963],"disappearing_whitespace":[0.308,0.367],"dot_notation":[2.979,3.992],"double_render":[0.272,0.395],"empty_list":[0.253,0.297],"empty_sections":[0.287,0.359],"empty_string":[0.384,0.58],"empty_template":[0.231,0.243],"error_not_found":[0.178,0.221],"escaped":[1.042,1.078],"falsy":[1.688,1.798],"falsy_array":[1.312,2.386],"grandparent_context":[2.072,3.75],"higher_order_sections":[0.508,0.639],"implicit_iterator":[0.76,0.989],"included_tag":[0.232,0.272],"inverted_section":[0.502,0.584],"keys_with_questionmarks":[0.33,0.452],"malicious_template":[0.672,0.708],"multiline_comment":[0.236,0.249],"nested_dot":[0.274,0.382],"nested_higher_order_sections":[0.662,0.812],"nested_iterating":[0.447,0.71],"nesting":[0.678,0.892],"nesting_same_name":[0.559,0.758],"null_lookup_array":[0.889,1.484],"null_lookup_object":[2.635,3.254],"null_string":[0.686,0.999],"null_view":[0.316,0.46],"partial_array":[0.694,1.068],"partial_array_of_partials":[0.976,1.509],"partial_array_of_partials_implicit":[0.864,1.374],"partial_empty":[0.326,0.413],"partial_template":[0.515,0.675],"partial_view":[1.051,1.36],"partial_whitespace":[1.079,1.354],"recursion_with_same_names":[0.763,1.157],"reuse_of_enumerables":[1.029,1.483],"section_as_context":[0.815,1.211],"section_functions_in_partials":[0.646,0.703],"simple":[0.613,0.756],"string_as_context":[0.69,1.323],"two_in_a_row":[0.297,0.461],"two_sections":[0.272,0.378],"unescaped":[0.291,0.335],"uses_props_from_view_prototype":[1.183,2.017],"whitespace":[0.28,0.485],"zero_view":[0.371,0.45]};
+  var EXEMPLARS = ["ampersand_escape","apostrophe","array_of_strings","avoids_obj_prototype_in_view_cache","backslashes","bug_11_eating_whitespace","bug_length_property","changing_delimiters","check_falsy","cli","cli_js_view_with_function","comments","complex","context_lookup","delimiters","disappearing_whitespace","dot_notation","double_render","empty_list","empty_sections","empty_string","empty_template","error_not_found","escaped","falsy","falsy_array","grandparent_context","higher_order_sections","implicit_iterator","included_tag","inverted_section","keys_with_questionmarks","malicious_template","multiline_comment","nested_dot","nested_higher_order_sections","nested_iterating","nesting","nesting_same_name","null_lookup_array","null_lookup_object","null_string","null_view","partial_array","partial_array_of_partials","partial_array_of_partials_implicit","partial_empty","partial_template","partial_view","partial_whitespace","recursion_with_same_names","reuse_of_enumerables","section_as_context","section_functions_in_partials","simple","string_as_context","two_in_a_row","two_sections","unescaped","uses_props_from_view_prototype","whitespace","zero_view"];
+
+  var specEl = document.getElementById("spec-rows");
+  SPEC.forEach(function(s){
+    var row = document.createElement("div"); row.className = "specrow specgrid";
+    var moLabel = s.mo + "/" + s.t + (s.dec ? ' <span class="dec">+' + s.dec + '</span>' : "");
+    row.innerHTML =
+      '<div class="mod">' + s.m + '</div>' +
+      '<div class="cell moose"><div class="minibar"><div class="fill" style="width:' + (s.mo/s.t*100) + '%"></div></div><span class="cnt">' + moLabel + '</span></div>' +
+      '<div class="cell mu"><div class="minibar"><div class="fill mu" style="width:' + (s.mu/s.t*100) + '%"></div></div><span class="cnt">' + s.mu + '/' + s.t + '</span></div>';
+    specEl.appendChild(row);
+  });
+
+  var exEl = document.getElementById("ex-rows");
+  EXEMPLARS.forEach(function(n){
+    var c = document.createElement("span"); c.className = "exchip";
+    var t = EXTIME[n];
+    if (t && t[0] != null && t[1] != null) {
+      var ratio = t[1] / t[0], faster = ratio >= 1;
+      c.title = "moose " + t[0] + "\u00b5s  \u00b7  mustache " + t[1] + "\u00b5s";
+      c.innerHTML = '<span class="tk">\u2713</span><span class="exname">' + n + '</span>' +
+                    '<span class="exsp ' + (faster ? "fast" : "slow") + '">' + ratio.toFixed(2) + '\u00d7</span>';
+    } else {
+      c.innerHTML = '<span class="tk">\u2713</span><span class="exname">' + n + '</span>';
+    }
+    exEl.appendChild(c);
+  });
+})();
+</script>

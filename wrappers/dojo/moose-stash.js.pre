@@ -1,0 +1,3 @@
+// Dojo: dojox.mooseStash(template, view, partials).
+dojo.provide("dojox.mooseStash");
+(function () {

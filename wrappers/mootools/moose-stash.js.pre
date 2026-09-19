@@ -1,0 +1,2 @@
+// MooTools: every object gains .mooseStash(template, partials); the object is the view.
+(function () {

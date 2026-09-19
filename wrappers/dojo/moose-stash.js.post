@@ -1,0 +1,6 @@
+
+  dojox.mooseStash = function (template, view, partials) {
+    return MooseStash.render(template, view, partials);
+  };
+
+})();

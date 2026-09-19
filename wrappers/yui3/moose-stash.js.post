@@ -1,0 +1,6 @@
+
+  Y.mooseStash = function (template, view, partials) {
+    return MooseStash.render(template, view, partials);
+  };
+
+}, "1.0.0");

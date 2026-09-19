@@ -1,0 +1,2 @@
+// YUI3: the "moose-stash" module exposes Y.mooseStash(template, view, partials).
+YUI.add("moose-stash", function (Y) {
