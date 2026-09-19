@@ -1,0 +1,50 @@
+{
+  "name": "moose-stash",
+  "version": "1.0.0",
+  "description": "A tiny, fast, logic-less Mustache template engine — spec-conformant and safe against lambda template injection by construction. Zero dependencies.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src/index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "test": "node --experimental-strip-types test/conformance.ts --all",
+    "security": "node --experimental-strip-types test/security.ts"
+  },
+  "keywords": [
+    "mustache",
+    "template",
+    "templating",
+    "template-engine",
+    "logic-less",
+    "handlebars",
+    "render",
+    "ssti",
+    "template-injection",
+    "secure",
+    "zero-dependency",
+    "typescript"
+  ],
+  "author": "Jared Foy",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
