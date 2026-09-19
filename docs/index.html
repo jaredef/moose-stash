@@ -349,7 +349,7 @@
     (mustache.js 4.2 doesn't implement these either — it passes 2 of the 10 lambda cases.)</p>
 
   <div class="card">
-    <div class="cardhead"><span><a class="ext" href="https://github.com/janl/mustache.js/tree/master/test/_files" target="_blank" rel="noopener noreferrer">mustache.js test suite</a></span><span><b>62 / 62 identical</b> · moose faster on <b>62 / 62</b>, median <b>1.32×</b></span></div>
+    <div class="cardhead"><span><a class="ext" href="https://github.com/janl/mustache.js/tree/master/test/_files" target="_blank" rel="noopener noreferrer">mustache.js test suite</a></span><span><b>62 / 62 identical</b> · moose faster on <b>60 / 62</b>, median <b>1.29×</b></span></div>
     <div class="exgrid" id="ex-rows"></div>
   </div>
 
@@ -366,25 +366,25 @@
   "use strict";
   // Static results from `npm run moosebench` on Node v22.22.3 (min-of-N windows).
   var DATA = [
-    {name:"greeting", group:"common", template:"Hello, {{name}}! You have {{count}} new {{#one}}message{{/one}}…", status:"match", mo:0.51, mu:0.57},
-    {name:"user-card (HTML)", group:"common", template:'<div class="card"> <h2>{{name}}</h2> <p class="bio">{{bio}}</p>…', status:"match", mo:1.74, mu:2.19},
-    {name:"table-100 (HTML)", group:"common", template:'<table> <thead>… {{#rows}}<tr class="{{#active}}…"><td>{{n}}</td>…', status:"match", mo:78.08, mu:78.89},
-    {name:"layout (partials)", group:"common", template:"{{> header}} <main> {{> nav}} <article>{{{body}}}</article> {{> footer}}", status:"match", mo:1.92, mu:2.16},
-    {name:"email (mixed)", group:"common", template:"Hi {{name}}, {{#premium}}Thanks…{{/premium}} {{#items}}- {{title}}…", status:"match", mo:1.96, mu:2.49},
-    {name:"deep-context (6 levels)", group:"hard", template:"{{#a}}{{top}}|{{#b}}{{top}}{{mid}}|{{#c}}{{top}}{{mid}}{{deep}}…", status:"match", mo:3.55, mu:5.91},
-    {name:"big-list-2000", group:"hard", template:"{{#rows}}{{n}}:{{name}}:{{email}}:{{#active}}A{{/active}}…{{/rows}}", status:"match", mo:1417.43, mu:1451.98},
-    {name:"recursive-tree (partial)", group:"hard", template:"{{> node}}   — self-recursive partial, 364 nodes", status:"match", mo:125.25, mu:158.95},
-    {name:"delimiter-switching", group:"hard", template:"{{=<% %>=}}<% greeting %>, <%={{ }}=%>{{name}}! {{=[[ ]]=}}[[ tail ]]", status:"match", mo:0.45, mu:0.67},
-    {name:"interpolation lambda", group:"hard", template:"{{salute}}, {{name}}!", status:"match", mo:0.35, mu:0.49},
-    {name:"section lambda (render-cb)", group:"hard", template:"{{#upper}}{{greeting}}{{/upper}} {{name}} {{#wrap}}note{{/wrap}}", status:"only", mo:0.79, mu:null},
-    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.9, mu:null},
-    {name:"Writer (own cache)", group:"surface", template:"new Writer() — render through an isolated engine with its own template cache", status:"match", mo:0.95, mu:1.36},
-    {name:"Context (prebuilt chain)", group:"surface", template:"new Context(view).push(child) — render over a prebuilt view-chain", status:"match", mo:0.77, mu:0.90},
-    {name:"Scanner (tokenize)", group:"surface", template:"new Scanner(s) — scan/scanUntil a template string into tag bodies", status:"match", mo:7.07, mu:8.59},
-    {name:"config: custom tags", group:"surface", template:"render(t, v, {}, { tags:[\"<%\",\"%>\"] }) — per-call custom delimiters", status:"match", mo:0.98, mu:1.37},
-    {name:"config: custom escape", group:"surface", template:"render(t, v, {}, { escape }) — per-call custom escape function", status:"match", mo:0.84, mu:0.97},
-    {name:"partials as function", group:"surface", template:"render(t, v, name => …) — partials resolved by a function, not a map", status:"match", mo:1.46, mu:1.80},
-    {name:"cache churn + clearCache", group:"surface", template:"512 unique templates cycling, clearCache each cycle", status:"match", mo:1.93, mu:2.53}
+    {name:"greeting", group:"common", template:"Hello, {{name}}! You have {{count}} new {{#one}}message{{/one}}…", status:"match", mo:0.44, mu:0.48},
+    {name:"user-card (HTML)", group:"common", template:'<div class="card"> <h2>{{name}}</h2> <p class="bio">{{bio}}</p>…', status:"match", mo:1.46, mu:1.78},
+    {name:"table-100 (HTML)", group:"common", template:'<table> <thead>… {{#rows}}<tr class="{{#active}}…"><td>{{n}}</td>…', status:"match", mo:65.36, mu:67.26},
+    {name:"layout (partials)", group:"common", template:"{{> header}} <main> {{> nav}} <article>{{{body}}}</article> {{> footer}}", status:"match", mo:1.67, mu:1.84},
+    {name:"email (mixed)", group:"common", template:"Hi {{name}}, {{#premium}}Thanks…{{/premium}} {{#items}}- {{title}}…", status:"match", mo:1.54, mu:2.1},
+    {name:"deep-context (6 levels)", group:"hard", template:"{{#a}}{{top}}|{{#b}}{{top}}{{mid}}|{{#c}}{{top}}{{mid}}{{deep}}…", status:"match", mo:2.99, mu:4.96},
+    {name:"big-list-2000", group:"hard", template:"{{#rows}}{{n}}:{{name}}:{{email}}:{{#active}}A{{/active}}…{{/rows}}", status:"match", mo:1204.58, mu:1215.3},
+    {name:"recursive-tree (partial)", group:"hard", template:"{{> node}}   — self-recursive partial, 364 nodes", status:"match", mo:106.51, mu:142.78},
+    {name:"delimiter-switching", group:"hard", template:"{{=<% %>=}}<% greeting %>, <%={{ }}=%>{{name}}! {{=[[ ]]=}}[[ tail ]]", status:"match", mo:0.38, mu:0.57},
+    {name:"interpolation lambda", group:"hard", template:"{{salute}}, {{name}}!", status:"match", mo:0.3, mu:0.41},
+    {name:"section lambda (render-cb)", group:"hard", template:"{{#upper}}{{greeting}}{{/upper}} {{name}} {{#wrap}}note{{/wrap}}", status:"only", mo:0.67, mu:null},
+    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.77, mu:null},
+    {name:"Writer (own cache)", group:"surface", template:"new Writer() — render through an isolated engine with its own template cache", status:"match", mo:0.95, mu:1.28},
+    {name:"Context (prebuilt chain)", group:"surface", template:"new Context(view).push(child) — render over a prebuilt view-chain", status:"match", mo:0.74, mu:0.87},
+    {name:"Scanner (tokenize)", group:"surface", template:"new Scanner(s) — scan/scanUntil a template string into tag bodies", status:"match", mo:6.94, mu:8.31},
+    {name:"config: custom tags", group:"surface", template:"render(t, v, {}, { tags:[\"<%\",\"%>\"] }) — per-call custom delimiters", status:"match", mo:0.95, mu:1.32},
+    {name:"config: custom escape", group:"surface", template:"render(t, v, {}, { escape }) — per-call custom escape function", status:"match", mo:0.7, mu:0.86},
+    {name:"partials as function", group:"surface", template:"render(t, v, name => …) — partials resolved by a function, not a map", status:"match", mo:1.44, mu:1.8},
+    {name:"cache churn + clearCache", group:"surface", template:"512 unique templates cycling, clearCache each cycle", status:"match", mo:1.39, mu:2.29}
   ];
 
   function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -456,7 +456,7 @@
     {m:"inheritance",t:27,mo:27,mu:0,dec:0},
     {m:"lambdas",t:10,mo:6,mu:2,dec:4}
   ];
-  var EXTIME={"ampersand_escape":[0.192,0.229],"apostrophe":[0.384,0.482],"array_of_strings":[0.373,0.568],"avoids_obj_prototype_in_view_cache":[0.28,0.559],"backslashes":[0.514,0.571],"bug_11_eating_whitespace":[0.205,0.293],"bug_length_property":[0.36,0.549],"changing_delimiters":[0.334,0.442],"check_falsy":[0.369,0.443],"cli":[0.237,0.325],"cli_js_view_with_function":[0.489,0.605],"comments":[0.346,0.419],"complex":[1.747,2.437],"context_lookup":[0.408,0.517],"delimiters":[0.641,0.963],"disappearing_whitespace":[0.308,0.367],"dot_notation":[2.979,3.992],"double_render":[0.272,0.395],"empty_list":[0.253,0.297],"empty_sections":[0.287,0.359],"empty_string":[0.384,0.58],"empty_template":[0.231,0.243],"error_not_found":[0.178,0.221],"escaped":[1.042,1.078],"falsy":[1.688,1.798],"falsy_array":[1.312,2.386],"grandparent_context":[2.072,3.75],"higher_order_sections":[0.508,0.639],"implicit_iterator":[0.76,0.989],"included_tag":[0.232,0.272],"inverted_section":[0.502,0.584],"keys_with_questionmarks":[0.33,0.452],"malicious_template":[0.672,0.708],"multiline_comment":[0.236,0.249],"nested_dot":[0.274,0.382],"nested_higher_order_sections":[0.662,0.812],"nested_iterating":[0.447,0.71],"nesting":[0.678,0.892],"nesting_same_name":[0.559,0.758],"null_lookup_array":[0.889,1.484],"null_lookup_object":[2.635,3.254],"null_string":[0.686,0.999],"null_view":[0.316,0.46],"partial_array":[0.694,1.068],"partial_array_of_partials":[0.976,1.509],"partial_array_of_partials_implicit":[0.864,1.374],"partial_empty":[0.326,0.413],"partial_template":[0.515,0.675],"partial_view":[1.051,1.36],"partial_whitespace":[1.079,1.354],"recursion_with_same_names":[0.763,1.157],"reuse_of_enumerables":[1.029,1.483],"section_as_context":[0.815,1.211],"section_functions_in_partials":[0.646,0.703],"simple":[0.613,0.756],"string_as_context":[0.69,1.323],"two_in_a_row":[0.297,0.461],"two_sections":[0.272,0.378],"unescaped":[0.291,0.335],"uses_props_from_view_prototype":[1.183,2.017],"whitespace":[0.28,0.485],"zero_view":[0.371,0.45]};
+  var EXTIME={"ampersand_escape":[0.175,0.2],"apostrophe":[0.326,0.394],"array_of_strings":[0.321,0.44],"avoids_obj_prototype_in_view_cache":[0.272,0.443],"backslashes":[0.453,0.484],"bug_11_eating_whitespace":[0.191,0.234],"bug_length_property":[0.321,0.424],"changing_delimiters":[0.302,0.356],"check_falsy":[0.309,0.371],"cli":[0.202,0.262],"cli_js_view_with_function":[0.401,0.487],"comments":[0.285,0.338],"complex":[1.465,2.081],"context_lookup":[0.339,0.428],"delimiters":[0.543,0.807],"disappearing_whitespace":[0.266,0.298],"dot_notation":[2.496,3.358],"double_render":[0.24,0.321],"empty_list":[0.215,0.239],"empty_sections":[0.246,0.31],"empty_string":[0.336,0.469],"empty_template":[0.193,0.192],"error_not_found":[0.149,0.168],"escaped":[0.86,0.869],"falsy":[1.443,1.508],"falsy_array":[1.101,1.966],"grandparent_context":[1.819,3.173],"higher_order_sections":[0.423,0.502],"implicit_iterator":[0.635,0.823],"included_tag":[0.201,0.229],"inverted_section":[0.412,0.434],"keys_with_questionmarks":[0.28,0.366],"malicious_template":[0.566,0.566],"multiline_comment":[0.199,0.197],"nested_dot":[0.232,0.306],"nested_higher_order_sections":[0.542,0.657],"nested_iterating":[0.382,0.564],"nesting":[0.579,0.737],"nesting_same_name":[0.469,0.626],"null_lookup_array":[0.751,1.263],"null_lookup_object":[2.212,2.637],"null_string":[0.592,0.845],"null_view":[0.269,0.351],"partial_array":[0.579,0.876],"partial_array_of_partials":[0.818,1.281],"partial_array_of_partials_implicit":[0.735,1.213],"partial_empty":[0.289,0.342],"partial_template":[0.445,0.578],"partial_view":[0.897,1.085],"partial_whitespace":[0.927,1.127],"recursion_with_same_names":[0.662,0.979],"reuse_of_enumerables":[0.869,1.175],"section_as_context":[0.71,1.025],"section_functions_in_partials":[0.541,0.561],"simple":[0.52,0.617],"string_as_context":[0.592,1.091],"two_in_a_row":[0.259,0.395],"two_sections":[0.246,0.273],"unescaped":[0.255,0.262],"uses_props_from_view_prototype":[0.996,1.761],"whitespace":[0.248,0.382],"zero_view":[0.314,0.357]};
   var EXEMPLARS = ["ampersand_escape","apostrophe","array_of_strings","avoids_obj_prototype_in_view_cache","backslashes","bug_11_eating_whitespace","bug_length_property","changing_delimiters","check_falsy","cli","cli_js_view_with_function","comments","complex","context_lookup","delimiters","disappearing_whitespace","dot_notation","double_render","empty_list","empty_sections","empty_string","empty_template","error_not_found","escaped","falsy","falsy_array","grandparent_context","higher_order_sections","implicit_iterator","included_tag","inverted_section","keys_with_questionmarks","malicious_template","multiline_comment","nested_dot","nested_higher_order_sections","nested_iterating","nesting","nesting_same_name","null_lookup_array","null_lookup_object","null_string","null_view","partial_array","partial_array_of_partials","partial_array_of_partials_implicit","partial_empty","partial_template","partial_view","partial_whitespace","recursion_with_same_names","reuse_of_enumerables","section_as_context","section_functions_in_partials","simple","string_as_context","two_in_a_row","two_sections","unescaped","uses_props_from_view_prototype","whitespace","zero_view"];
 
   var specEl = document.getElementById("spec-rows");

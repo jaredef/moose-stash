@@ -20,7 +20,7 @@ import mooseDefault, {
   type Partials,
 } from "../src/index.ts";
 
-type Job = {
+export type Job = {
   name: string;
   cat: "common" | "hard";
   template: string;
@@ -53,7 +53,7 @@ function tree(depth: number, branch: number, id = "0"): unknown {
 
 // ---- jobs -----------------------------------------------------------------
 
-const JOBS: Job[] = [
+export const JOBS: Job[] = [
   // ---------- COMMON ----------
   {
     name: "greeting",
@@ -189,7 +189,7 @@ const JOBS: Job[] = [
 // are the timed closures; reusable objects (a Writer, a Context, a parsed template)
 // are built once outside the closure where a real consumer would reuse them.
 
-type SurfaceJob = {
+export type SurfaceJob = {
   name: string;
   moose: () => string;
   mustache: () => string | null; // null = surface unsupported by mustache.js
@@ -241,7 +241,7 @@ const partTpl = "{{>header}}{{#fields}}{{>row}};{{/fields}}";
 // cache churn: many unique template strings, clearCache periodically.
 let mk = 0, muk = 0;
 
-const SURFACE_JOBS: SurfaceJob[] = [
+export const SURFACE_JOBS: SurfaceJob[] = [
   {
     name: "Writer (own cache)",
     moose: () => mooseWriter.render(cardTpl, card),
@@ -305,14 +305,14 @@ const SURFACE_JOBS: SurfaceJob[] = [
 
 // ---- run ------------------------------------------------------------------
 
-function renderMustache(j: Job): string {
+export function renderMustache(j: Job): string {
   return Mustache.render(j.template, j.data, j.partials ?? {});
 }
-function renderMoose(j: Job): string {
+export function renderMoose(j: Job): string {
   return moose(j.template, j.data, j.partials ?? {});
 }
 
-function time(fn: () => void, iters: number): number {
+export function time(fn: () => void, iters: number): number {
   for (let i = 0; i < Math.min(iters, 500); i++) fn(); // warmup
   const t0 = process.hrtime.bigint();
   for (let i = 0; i < iters; i++) fn();
@@ -328,6 +328,8 @@ function status(j: Job): "match" | "diverge" | "unsupported" {
   return mo !== null && mo === mu ? "match" : "diverge";
 }
 
+import { fileURLToPath } from "node:url";
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
 console.log(`moosebench — moose-stash vs mustache.js 4.x   (Node ${process.version})\n`);
 console.log("  job                         parity      moose µs   mustache µs   speed");
 console.log("  " + "-".repeat(76));
@@ -370,3 +372,4 @@ console.log("  speed:  mustache-µs ÷ moose-µs  (>1 = moose faster).  Both eng
 console.log("\n  Notes:");
 for (const j of JOBS) if (j.note) console.log(`    ${j.name.padEnd(26)} ${j.note}`);
 for (const j of SURFACE_JOBS) console.log(`    ${j.name.padEnd(26)} ${j.note}`);
+}
