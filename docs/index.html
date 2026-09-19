@@ -151,9 +151,9 @@
 
   .speed { display: flex; align-items: center; gap: 11px; }
   .track { position: relative; flex: 1; height: 9px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 60px; }
-  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--moose); transition: width .5s cubic-bezier(.2,.7,.2,1); }
-  .track .fill.slow { background: var(--mustache); }
-  .track .tick { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1.5px; background: var(--line-strong); }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .track .fill.moose { background: var(--moose); }
+  .track .fill.mu { background: var(--mustache); }
   .mult { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 13.5px; min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
   .mult.fast { color: var(--moose); }
   .mult.slow { color: var(--mustache); }
@@ -356,7 +356,7 @@
     <span class="swatch"><span class="sw" style="background:var(--moose)"></span> moose-stash</span>
     <span class="swatch"><span class="sw" style="background:var(--mustache)"></span> mustache.js 4.2.0</span>
     <span>· measured on Node v22.22.3 (V8)</span>
-    <span>Lower µs is faster; each figure is per render — the fastest of several timed windows.</span>
+    <span>Lower µs is faster. In the speed bar green = moose-stash, gold = mustache.js; the green past the gold is how much faster moose renders. Each figure is per render — the fastest of several timed windows.</span>
   </footer>
 </div>
 
@@ -401,10 +401,15 @@
     var muCell = (j.mu == null) ? '<span class="u">can’t render</span>' : fmt(j.mu) + ' <span class="u">µs</span>';
     var speedCell;
     if (ratio == null){
-      speedCell = '<div class="track"><div class="tick"></div><div class="fill" style="width:0"></div></div><div class="mult na">—</div>';
+      // moose-only: mustache can't render this — all green, no gold
+      speedCell = '<div class="track"><div class="fill moose" style="width:100%"></div></div><div class="mult na">—</div>';
     } else {
-      var pct = Math.max(2, Math.min(100, ratio / 2 * 100));
-      speedCell = '<div class="track"><div class="tick"></div><div class="fill ' + (faster ? "" : "slow") + '" style="width:' + pct + '%"></div></div>' +
+      // scale to the faster engine's throughput (1/time): green = moose, gold =
+      // mustache layered on top, so the green past the gold is moose's lead
+      var moT = 1 / j.mo, muT = 1 / j.mu, maxT = Math.max(moT, muT);
+      speedCell = '<div class="track">' +
+                  '<div class="fill moose" style="width:' + (moT / maxT * 100) + '%"></div>' +
+                  '<div class="fill mu" style="width:' + (muT / maxT * 100) + '%"></div></div>' +
                   '<div class="mult ' + (faster ? "fast" : "slow") + '">' + ratio.toFixed(2) + '×</div>';
     }
     var r = document.createElement("div"); r.className = "row";
