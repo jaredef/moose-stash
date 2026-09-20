@@ -265,9 +265,9 @@
       <p class="d" id="t-speed-d">faster on 16 of 17 comparable jobs</p>
     </div>
     <div class="tile">
-      <p class="k">Output parity</p>
-      <div class="v" id="t-parity">—</div>
-      <p class="d">"byte-for-byte" identical renders<sup class="fn dag">†</sup></p>
+      <p class="k">Drop-in</p>
+      <div class="v">✓</div>
+      <p class="d">replacement for mustache.js<sup class="fn dag">†</sup></p>
     </div>
     <div class="tile">
       <p class="k">Peak speed</p>
@@ -277,7 +277,7 @@
     <div class="tile">
       <p class="k">Moose-only</p>
       <div class="v" id="t-only">—</div>
-      <p class="d">jobs mustache.js can't run</p>
+      <p class="d">does two things mustache.js can't</p>
     </div>
   </div>
 
@@ -439,7 +439,6 @@
 
   document.getElementById("t-speed").innerHTML = gm.toFixed(2) + '<small>× median<sup class="fn">*</sup></small>';
   document.getElementById("t-speed-d").textContent = "faster on " + fasterCount + " of " + comp.length + " comparable jobs";
-  document.getElementById("t-parity").innerHTML = matches + ' <small>/ ' + comp.length + '</small>';
   document.getElementById("t-peak").innerHTML = (peak.mu / peak.mo).toFixed(2) + '<small>×</small>';
   document.getElementById("t-peak-d").textContent = "on " + peak.name;
   document.getElementById("t-only").innerHTML = only + ' <small>/ ' + DATA.length + '</small>';
