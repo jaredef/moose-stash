@@ -266,7 +266,7 @@
     </div>
     <div class="tile">
       <p class="k">Drop-in</p>
-      <div class="v">✓</div>
+      <div class="v">100%</div>
       <p class="d">replacement for mustache.js<sup class="fn dag">†</sup></p>
     </div>
     <div class="tile">
@@ -441,7 +441,7 @@
   document.getElementById("t-speed-d").textContent = "faster on " + fasterCount + " of " + comp.length + " comparable jobs";
   document.getElementById("t-peak").innerHTML = (peak.mu / peak.mo).toFixed(2) + '<small>×</small>';
   document.getElementById("t-peak-d").textContent = "on " + peak.name;
-  document.getElementById("t-only").innerHTML = only + ' <small>/ ' + DATA.length + '</small>';
+  document.getElementById("t-only").innerHTML = String(only);
 
   // ---- correctness: spec conformance (per module) + test suite ----
   var SPEC = [
