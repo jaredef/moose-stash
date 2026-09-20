@@ -4,8 +4,8 @@ A tiny, fast, logic-less [Mustache](https://mustache.github.io/) template engine
 JavaScript and TypeScript — **zero dependencies**, **safe against lambda template
 injection**, and a **drop-in** for [mustache.js](https://github.com/janl/mustache.js).
 
-- **Small.** ~400 lines, no runtime dependencies. UMD, ESM, and minified builds.
-- **Fast.** Beats `mustache` on every workload measured — up to **1.6×**.
+- **Compact.** One dependency-free file, ~9 KB minified. UMD, ESM, and minified builds.
+- **Fast.** Faster than `mustache` on **16 of 17** benchmark jobs — ~1.3× median, up to **~2.0×** (the 17th is a tie).
 - **Complete.** The whole Mustache spec **plus** template inheritance and dynamic
   partial names, which `mustache` doesn't have.
 - **Safe by default.** A lambda's return value is always literal text and is **never**
@@ -26,7 +26,7 @@ injection**, and a **drop-in** for [mustache.js](https://github.com/janl/mustach
 | Dynamic partial names (`{{>*name}}`) | ✅ | ❌ |
 | Render-callback section lambdas | ✅ | ❌ |
 | Lambda injection safe by default | ✅ | by omission |
-| Throughput | **1.0–1.6×** | 1× |
+| Throughput | **~1.3× median** (up to 2.0×) | 1× |
 | Runtime dependencies | 0 | 0 |
 
 The 4 declined spec cases are the lambda **re-render** cases — see [Security](#security).
