@@ -214,7 +214,11 @@
   .cardhead .ext { color: inherit; font-weight: inherit; text-decoration-color: color-mix(in srgb, var(--moose) 55%, transparent); }
   .cardhead .ext:hover { color: var(--moose); }
   .fn { color: var(--moose); font-weight: 700; font-size: .7em; }
-  .finenote { font-size: 12px; line-height: 1.55; color: var(--faint); margin: 13px 4px 0; max-width: 82ch; }
+  html { scroll-behavior: smooth; }
+  .fnref { text-decoration: none; cursor: pointer; }
+  .fnref:hover .fn { text-decoration: underline; }
+  .finenote { font-size: 12px; line-height: 1.55; color: var(--faint); margin: 13px 4px 0; max-width: 82ch; scroll-margin-top: 24px; }
+  .finenote:target { outline: 2px solid var(--moose); outline-offset: 5px; border-radius: 6px; }
   .finenote .star { color: var(--moose); font-weight: 700; }
   .dag { color: var(--mustache) !important; }
   .finenote code { font-size: .92em; color: var(--muted); }
@@ -267,7 +271,7 @@
     <div class="tile">
       <p class="k">Drop-in</p>
       <div class="v">100%</div>
-      <p class="d">replacement for mustache.js<sup class="fn dag">†</sup></p>
+      <p class="d">replacement for mustache.js<a class="fnref" href="#fn-parity" aria-label="see parity note"><sup class="fn dag">†</sup></a></p>
     </div>
     <div class="tile">
       <p class="k">Peak speed</p>
@@ -277,7 +281,7 @@
     <div class="tile">
       <p class="k">Moose-only</p>
       <div class="v" id="t-only">—</div>
-      <p class="d">does two things mustache.js can't</p>
+      <p class="d">does two things mustache.js can't<a class="fnref" href="#fn-mooseonly" aria-label="see moose-only note"><sup class="fn">‡</sup></a></p>
     </div>
   </div>
 
@@ -309,10 +313,12 @@
 
   <p class="finenote"><span class="star">*</span> All render timings — the workload jobs above and the test suite below — were measured on <strong>Node.js v22.22.2</strong> (V8) on a 4-vCPU cloud container (Intel Xeon @ 2.10&nbsp;GHz), each figure the fastest of 8 timed windows. Absolute microseconds are hardware-specific (≈1.5–2× slower than desktop Apple Silicon); the <strong>ratios</strong> are the signal. Run-to-run swing is ≈10–15% on shared-tenant vCPUs, so anything within ~0.1× of parity is a tie — <code>big-list-2000</code> (≈1.0×) is such a tie.</p>
 
-  <p class="finenote"><span class="star dag">†</span> Output parity is the 10 common and hard jobs above — real templates
+  <p class="finenote" id="fn-parity"><span class="star dag">†</span> Drop-in means byte-for-byte parity on the 17 common, hard, and compat-surface jobs above — real templates
     (an HTML table, a page layout, a transactional email, deeply-nested sections, …) each rendered by both engines and
-    compared character-for-character. Their templates and data are moose-stash's own
+    compared character-for-character, plus the same public API (render, parse, escape, tags, clearCache, templateCache, Writer, Context, Scanner). Their templates and data are moose-stash's own
     <a class="ext" href="https://github.com/jaredef/moose-stash/blob/main/bench/moosebench.ts" target="_blank" rel="noopener noreferrer">moosebench workload</a>.</p>
+
+  <p class="finenote" id="fn-mooseonly"><span class="star">‡</span> The two moose-only jobs are <b>template inheritance</b> (<code>{{&lt;parent}}</code> / <code>{{$block}}</code>) and <b>section lambdas that use the spec's render callback</b> — neither is implemented by mustache.js 4.2.</p>
 
   <div class="sectionlabel">
     <p class="eyebrow">Correctness</p>
