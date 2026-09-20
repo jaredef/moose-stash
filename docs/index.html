@@ -135,7 +135,7 @@
   .row { padding: 15px 20px; border-bottom: 1px solid var(--line); }
   .row:last-child { border-bottom: none; }
   .job .name { font-weight: 600; font-size: 15px; }
-  .job .tmpl { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .job .tmpl { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; } .job .tmpl.expanded { white-space: pre-wrap; overflow: visible; text-overflow: clip; }
 
   .parity { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
   .parity.match { color: var(--good); background: var(--moose-fill); }
@@ -282,18 +282,18 @@
   </div>
 
   <div class="loc">
-    <p class="loc-t">Lines of code — packaged script (<code>moose-stash.js</code> vs <code>mustache.js</code>)</p>
+    <p class="loc-t">Non-blank lines — packaged script (<code>moose-stash.js</code> vs <code>mustache.js</code>)</p>
     <div class="loc-bars">
       <div>
-        <div class="loc-meta"><span class="loc-name">moose-stash</span><span class="loc-n">441 <small>LoC</small></span></div>
-        <div class="loc-track"><div class="loc-fill moose" style="width:96.5%"></div></div>
+        <div class="loc-meta"><span class="loc-name">moose-stash</span><span class="loc-n">646 <small>lines</small></span></div>
+        <div class="loc-track"><div class="loc-fill moose" style="width:97.1%"></div></div>
       </div>
       <div>
-        <div class="loc-meta"><span class="loc-name">mustache.js 4.2</span><span class="loc-n">457 <small>LoC</small></span></div>
+        <div class="loc-meta"><span class="loc-name">mustache.js 4.2</span><span class="loc-n">665 <small>lines</small></span></div>
         <div class="loc-track"><div class="loc-fill mu" style="width:100%"></div></div>
       </div>
     </div>
-    <p class="loc-cap">Fewer lines, wider coverage — moose-stash also implements template inheritance, dynamic partial names, and render-callback lambdas, which mustache.js does not. Zero runtime dependencies, like mustache.js.</p>
+    <p class="loc-cap">Comparable size — 646 vs 665 non-blank lines, and moose-stash ships <b>zero comments</b> (mustache.js carries ~200 comment lines). Wider coverage, too: moose-stash also implements template inheritance, dynamic partial names, and render-callback lambdas, which mustache.js does not. Zero runtime dependencies, like mustache.js.</p>
   </div>
 
   <div class="card">
@@ -366,18 +366,18 @@
   "use strict";
   // Static results from `npm run moosebench` on Node v22.22.3 (min-of-N windows).
   var DATA = [
-    {name:"greeting", group:"common", template:"Hello, {{name}}! You have {{count}} new {{#one}}message{{/one}}…", status:"match", mo:0.44, mu:0.48},
-    {name:"user-card (HTML)", group:"common", template:'<div class="card"> <h2>{{name}}</h2> <p class="bio">{{bio}}</p>…', status:"match", mo:1.46, mu:1.78},
-    {name:"table-100 (HTML)", group:"common", template:'<table> <thead>… {{#rows}}<tr class="{{#active}}…"><td>{{n}}</td>…', status:"match", mo:65.36, mu:67.26},
-    {name:"layout (partials)", group:"common", template:"{{> header}} <main> {{> nav}} <article>{{{body}}}</article> {{> footer}}", status:"match", mo:1.67, mu:1.84},
-    {name:"email (mixed)", group:"common", template:"Hi {{name}}, {{#premium}}Thanks…{{/premium}} {{#items}}- {{title}}…", status:"match", mo:1.54, mu:2.1},
-    {name:"deep-context (6 levels)", group:"hard", template:"{{#a}}{{top}}|{{#b}}{{top}}{{mid}}|{{#c}}{{top}}{{mid}}{{deep}}…", status:"match", mo:2.99, mu:4.96},
-    {name:"big-list-2000", group:"hard", template:"{{#rows}}{{n}}:{{name}}:{{email}}:{{#active}}A{{/active}}…{{/rows}}", status:"match", mo:1204.58, mu:1215.3},
-    {name:"recursive-tree (partial)", group:"hard", template:"{{> node}}   — self-recursive partial, 364 nodes", status:"match", mo:106.51, mu:142.78},
+    {name:"greeting", group:"common", template:"Hello, {{name}}! You have {{count}} new {{#one}}message{{/one}}{{^one}}messages{{/one}}.", status:"match", mo:0.44, mu:0.48},
+    {name:"user-card (HTML)", group:"common", template:"<div class=\"card\">\n  <h2>{{name}}</h2>\n  <p class=\"bio\">{{bio}}</p>\n  <ul>\n  {{#fields}}<li><b>{{k}}:</b> {{v}}</li>\n  {{/fields}}</ul>\n  {{#admin}}<span class=\"badge\">admin</span>{{/admin}}\n</div>\n", status:"match", mo:1.46, mu:1.78},
+    {name:"table-100 (HTML)", group:"common", template:"<table>\n<thead><tr><th>#</th><th>name</th><th>email</th><th>score</th></tr></thead>\n<tbody>\n{{#rows}}<tr class=\"{{#active}}on{{/active}}{{^active}}off{{/active}}\"><td>{{n}}</td><td>{{name}}</td><td>{{email}}</td><td>{{score}}</td></tr>\n{{/rows}}</tbody>\n</table>\n", status:"match", mo:65.36, mu:67.26},
+    {name:"layout (partials)", group:"common", template:"{{> header}}\n<main>\n{{> nav}}\n<article>{{{body}}}</article>\n</main>\n{{> footer}}\n", status:"match", mo:1.67, mu:1.84},
+    {name:"email (mixed)", group:"common", template:"Hi {{name}},\n\n{{#premium}}Thanks for being a premium member!{{/premium}}{{^premium}}Upgrade any time.{{/premium}}\n\nYour {{items.length}} recent orders:\n{{#items}}  - {{title}} ({{qty}}\u00d7) \u2014 ${{price}}\n{{/items}}\nTotal: ${{total}}\n\n{{#coupon}}Use code {{coupon}} for 10% off.\n{{/coupon}}Unsubscribe: {{unsub}}\n", status:"match", mo:1.54, mu:2.1},
+    {name:"deep-context (6 levels)", group:"hard", template:"{{#a}}{{top}}|{{#b}}{{top}}{{mid}}|{{#c}}{{top}}{{mid}}{{deep}}|{{#d}}{{top}}{{mid}}{{deep}}{{x}}|{{#e}}{{top}}{{mid}}{{deep}}{{x}}{{y}}|{{#f}}{{top}}{{mid}}{{deep}}{{x}}{{y}}{{z}}{{/f}}{{/e}}{{/d}}{{/c}}{{/b}}{{/a}}", status:"match", mo:2.99, mu:4.96},
+    {name:"big-list-2000", group:"hard", template:"{{#rows}}{{n}}:{{name}}:{{email}}:{{#active}}A{{/active}}{{^active}}-{{/active}}\n{{/rows}}", status:"match", mo:1204.58, mu:1215.3},
+    {name:"recursive-tree (partial)", group:"hard", template:"{{> node}}", status:"match", mo:106.51, mu:142.78},
     {name:"delimiter-switching", group:"hard", template:"{{=<% %>=}}<% greeting %>, <%={{ }}=%>{{name}}! {{=[[ ]]=}}[[ tail ]]", status:"match", mo:0.38, mu:0.57},
     {name:"interpolation lambda", group:"hard", template:"{{salute}}, {{name}}!", status:"match", mo:0.3, mu:0.41},
     {name:"section lambda (render-cb)", group:"hard", template:"{{#upper}}{{greeting}}{{/upper}} {{name}} {{#wrap}}note{{/wrap}}", status:"only", mo:0.67, mu:null},
-    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}’s stuff</p>…{{/base}}", status:"only", mo:0.77, mu:null},
+    {name:"inheritance (layout)", group:"hard", template:"{{<base}}{{$title}}Dashboard{{/title}}{{$body}}<p>{{user}}'s stuff</p>{{/body}}{{/base}}", status:"only", mo:0.77, mu:null},
     {name:"Writer (own cache)", group:"surface", template:"new Writer() — render through an isolated engine with its own template cache", status:"match", mo:0.95, mu:1.28},
     {name:"Context (prebuilt chain)", group:"surface", template:"new Context(view).push(child) — render over a prebuilt view-chain", status:"match", mo:0.74, mu:0.87},
     {name:"Scanner (tokenize)", group:"surface", template:"new Scanner(s) — scan/scanUntil a template string into tag bodies", status:"match", mo:6.94, mu:8.31},
@@ -422,7 +422,7 @@
     }
     var r = document.createElement("div"); r.className = "row";
     r.innerHTML =
-      '<div class="job"><div class="name">' + esc(j.name) + '</div><div class="tmpl">' + esc(j.template) + '</div></div>' +
+      '<div class=\"job\"><div class=\"name\">' + esc(j.name) + '</div><div class=\"tmpl\" title=\"click to expand\">' + esc(j.template) + '</div></div>' +
       '<div>' + parity + '</div>' +
       '<div class="num moose">' + fmt(j.mo) + ' <span class="u">µs</span></div>' +
       '<div class="num mu">' + muCell + '</div>' +
@@ -430,6 +430,7 @@
     rowsEl.appendChild(r);
   });
 
+  rowsEl.addEventListener("click", function(e){ var t = e.target && e.target.closest && e.target.closest(".tmpl"); if (t) t.classList.toggle("expanded"); });
   var comp = DATA.filter(function(r){ return r.status !== "only"; });
   var fasterCount = comp.filter(function(r){ return r.mu / r.mo >= 1; }).length;
   var matches = comp.filter(function(r){ return r.status === "match"; }).length;
