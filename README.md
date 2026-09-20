@@ -15,6 +15,7 @@ injection**, and a **drop-in** for [mustache.js](https://github.com/janl/mustach
   `Context`, and `Scanner` classes — and it reproduces **all 62** of mustache.js's own
   fixtures byte for byte. Swap `require("mustache")` for `require("moose-stash")`.
 - **Typed.** Written in TypeScript; type declarations ship with the package.
+- **CSP-safe.** No `eval` or `new Function` — runs under a strict Content-Security-Policy, where compiled engines can't (see [below](#interpreter-not-a-compiler)).
 
 ## vs. mustache.js
 
@@ -30,6 +31,33 @@ injection**, and a **drop-in** for [mustache.js](https://github.com/janl/mustach
 | Runtime dependencies | 0 | 0 |
 
 The 4 declined spec cases are the lambda **re-render** cases — see [Security](#security).
+
+## Interpreter, not a compiler
+
+moose-stash and mustache.js are both **interpreters**: they parse a template to a token
+tree once (cached), then walk that tree on every render. They do **not** generate or
+`eval` JavaScript.
+
+Compiled engines — wontache, hogan.js, mote, abdk-mustache-js, mustatte — instead emit
+JavaScript source for each template and evaluate it with `new Function`. V8 then JITs the
+generated string-concatenation, so a compiled template renders faster than any interpreter
+can. If raw throughput is all that matters *and* your environment allows `new Function`, a
+compiler will beat moose-stash.
+
+| engine | strategy | uses `new Function` |
+|---|---|---|
+| wontache · hogan.js · mote · abdk-mustache-js · mustatte | compile to JS source | **yes** |
+| **moose-stash** | parse to a token tree, walk it per render | **no** |
+| mustache.js | parse to a token tree, walk it per render | no |
+
+Two honest consequences:
+
+- **moose-stash is the faster of the two interpreters** — that is exactly what the
+  benchmark measures (moose-stash vs mustache.js). It is *not* faster than the compilers.
+- **moose-stash runs where the compilers can't.** A strict Content-Security-Policy
+  (`script-src` without `'unsafe-eval'`) forbids `new Function`/`eval`, disabling every
+  compiled engine. An interpreter has no such requirement, so moose-stash renders under
+  CSP, in sandboxed/edge runtimes, and anywhere dynamic code evaluation is blocked.
 
 ## Install
 

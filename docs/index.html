@@ -363,6 +363,8 @@
 
   <p class="finenote" id="fn-mooseonly"><span class="star">‡</span> The two moose-only jobs are <b>template inheritance</b> (<code>{{&lt;parent}}</code> / <code>{{$block}}</code>) and <b>section lambdas that use the spec's render callback</b> — neither is implemented by mustache.js 4.2.</p>
 
+  <p class="finenote"><b>Interpreter, not a compiler.</b> moose-stash and mustache.js both parse a template to a token tree and <em>walk it per render</em> — no <code>eval</code>, no <code>new&nbsp;Function</code>. Compiled engines (hogan.js, wontache, mote, …) emit JavaScript and <code>eval</code> it, which V8 then JITs, so they render faster than <em>either</em> interpreter. moose-stash is the faster <em>interpreter</em>, and — unlike the compilers — it runs under a strict <b>Content-Security-Policy</b> (<code>script-src</code> without <code>'unsafe-eval'</code>) that forbids <code>new&nbsp;Function</code>.</p>
+
   <div class="sectionlabel">
     <p class="eyebrow">Correctness</p>
     <h2>Identical output, broader coverage</h2>
