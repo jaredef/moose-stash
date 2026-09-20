@@ -6,8 +6,7 @@
 // diverges or cannot run the job at all), then (2) time throughput for each.
 //
 // Both engines cache parsed templates, so render() is the like-for-like call.
-// Escaped content avoids "/" (mustache.js escapes it, moose does not — a known,
-// spec-irrelevant difference) so the common jobs compare byte-for-byte.
+// Both escape "/" to "&#x2F;" identically, so escaped content compares byte-for-byte.
 //
 // Run: npm run moosebench   (Node 22+, --experimental-strip-types)
 

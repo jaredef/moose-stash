@@ -64,34 +64,36 @@ mustache's cached path (the like-for-like comparison) and a parse-every-render p
 
 | engine | µs/render | renders/s |
 |---|---:|---:|
-| moose-stash (with cache) | 0.63 | 1,580,000 |
-| mustache (cached) | 0.56 | 1,770,000 |
-| mustache (parse each) | ~3–11 | (varies) |
+| moose-stash (with cache) | 0.42 | 2,390,000 |
+| mustache (cached) | 0.44 | 2,258,000 |
+| mustache (parse each) | 2.77 | 361,000 |
 
-→ moose is **~0.89×** mustache-cached — near parity (was **0.33×** before the cache).
+→ moose is **~1.06×** mustache-cached (faster), and **~6.6×** vs mustache-parse-each.
 
 **50-item list render** (one section-heavy template):
 
 | engine | µs/render | renders/s |
 |---|---:|---:|
-| moose-stash (with cache) | 33 | 30,000 |
-| mustache (cached) | 27 | 36,000 |
-| mustache (parse each) | 32 | 31,000 |
+| moose-stash (with cache) | 20.4 | 49,000 |
+| mustache (cached) | 23.8 | 42,000 |
+| mustache (parse each) | 29.4 | 34,000 |
 
-→ moose is **~0.82×** mustache-cached (was 0.63×), and **~1.04×** vs
+→ moose is **~1.17×** mustache-cached (faster), and **~1.44×** vs
 mustache-parse-each.
 
-*Before the parse cache*, moose was 1.61 µs (spec-core) / 40.7 µs (list) and
-0.33× / 0.63× of mustache-cached. The cache is the whole difference.
+*Before the parse cache*, moose was 1.61 µs (spec-core) / 40.7 µs (list) — 0.33× /
+0.63× of mustache-cached. The parse cache reached parity; the render-path arcs
+(`L.mustache.exceed-parity`, `L.mustache.lookup-amortization`) then took it past.
 
 ## Reading
 
 - **Correctness:** moose-stash wins outright — full spec, including the three
   optional modules mustache.js omits or predates.
-- **Speed:** with both engines caching parses, moose-stash is at **~0.85–0.9× of
-  mustache.js** — effectively at parity. The parse cache closed the gap the first
-  benchmark exposed.
-- **Remaining ~10–15% (render path):** the list path still allocates a fresh
-  context frame per item (`[...stack, item]`) and concatenates strings — a
-  secondary optimization, recorded but not chased (the benchmark measures; it does
-  not tune beyond the one amortization the method called for).
+- **Speed:** with both engines caching parses, moose-stash is **faster than
+  mustache.js** — ~1.06× on the spec-core corpus and ~1.17× on the 50-item list.
+  The workload suite (`MOOSEBENCH.md`) shows the same: faster on every comparable
+  job, ~1.0–1.66×, median ~1.28×.
+- **How it got here:** the parse cache closed the gap the first benchmark exposed;
+  then two Pin-Art arcs amortized the render path — push/pop context stack (no
+  per-item `[...stack, item]` copy), single-segment lookup, no-op-escape fast path,
+  dropped hot-path boxing, and memoized dotted-name splits.
