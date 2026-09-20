@@ -4,89 +4,100 @@
 spread of the most **common** and the **hardest** Mustache jobs, plus the **drop-in
 compatibility API** (Writer, Context, Scanner, the config argument, function partials,
 cache control). For each job it first checks output **parity** (so it times equivalent
-work, and surfaces where mustache.js diverges or can't run the job at all), then
-measures throughput. Both engines cache parsed templates, so `render()` is the
-like-for-like call.
+work, and surfaces where mustache.js diverges or can't run the job at all), then measures
+throughput. Both engines cache parsed templates, so `render()` is the like-for-like call.
 
-Numbers below are representative (Node 22); absolute µs is machine-specific and varies
-run to run — the **ratios and the parity column** are the signal.
+`speed = mustache-µs ÷ moose-µs` (>1 means moose is faster). **The ratios are the signal**
+— absolute microseconds are hardware-specific.
 
-## Results
+## Environment
+
+| | |
+|---|---|
+| CPU | Intel Xeon @ 2.10 GHz (generic cloud SKU), 4 vCPUs, AVX-512 |
+| Virtualization | Docker under a Firecracker-style hypervisor (kernel 6.18) |
+| RAM / OS | 15 GiB · Ubuntu 24.04.4 LTS |
+| Node | v22.22.2 (V8 12.4) |
+| Load during runs | idle (load average 0.02) |
+
+Absolute µs here run ≈1.5–2× slower than desktop Apple Silicon, and a shared-tenant vCPU
+with no visible frequency governor swings ≈10–15% run-to-run. The **direction of every
+result held across all runs**, but anything within about **0.1× of parity is a tie** on
+this hardware.
+
+## Results (1.0.1, min-of-8 windows — the `pagedata.ts` method)
 
 ```
   job                         parity      moose µs   mustache µs   speed
   ── COMMON ──────────────────────────────────────────────────────────────────
-  greeting                   ✓ match       0.44        0.48        1.09×
-  user-card (HTML)           ✓ match       1.46        1.78        1.22×
-  table-100 (HTML)           ✓ match      65.36       67.26        1.03×
-  layout (partials)          ✓ match       1.67        1.84        1.10×
-  email (mixed)              ✓ match       1.54        2.10        1.36×
+  greeting                   ✓ match        0.52        0.59       1.13×
+  user-card (HTML)           ✓ match        1.93        2.32       1.20×
+  table-100 (HTML)           ✓ match       79.00       89.13       1.13×
+  layout (partials)          ✓ match        1.96        2.31       1.18×
+  email (mixed)              ✓ match        1.49        2.11       1.42×
   ── HARD ─────────────────────────────────────────────────────────────────────
-  deep-context (6 levels)    ✓ match       2.99        4.96        1.66×
-  big-list-2000              ✓ match    1204.58     1215.30        1.01×
-  recursive-tree (partial)   ✓ match     106.51      142.78        1.34×
-  delimiter-switching        ✓ match       0.38        0.57        1.50×
-  interpolation lambda       ✓ match       0.30        0.41        1.37×
-  section lambda (render-cb)  ✗ n/a        0.67           —   moose-only
-  inheritance (layout)       ✗ n/a        0.77           —   moose-only
+  deep-context (6 levels)    ✓ match        2.63        5.32       2.02×
+  big-list-2000              ✓ match     1679.27     1658.16       0.99×  (tie)
+  recursive-tree (partial)   ✓ match      122.73      169.97       1.38×
+  delimiter-switching        ✓ match        0.44        0.70       1.59×
+  interpolation lambda       ✓ match        0.33        0.50       1.52×
+  section lambda (render-cb)  ✗ n/a         0.80          —    moose-only
+  inheritance (layout)       ✗ n/a         0.85          —    moose-only
   ── COMPAT SURFACES ──────────────────────────────────────────────────────────
-  Writer (own cache)         ✓ match       0.95        1.28        1.35×
-  Context (prebuilt chain)   ✓ match       0.74        0.87        1.18×
-  Scanner (tokenize)         ✓ match       6.94        8.31        1.20×
-  config: custom tags        ✓ match       0.95        1.32        1.39×
-  config: custom escape      ✓ match       0.70        0.86        1.23×
-  partials as function       ✓ match       1.44        1.80        1.25×
-  cache churn + clearCache   ✓ match       1.39        2.29        1.65×
+  Writer (own cache)         ✓ match        1.22        1.71       1.40×
+  Context (prebuilt chain)   ✓ match        0.92        1.15       1.25×
+  Scanner (tokenize)         ✓ match        7.59        9.33       1.23×
+  config: custom tags        ✓ match        1.11        1.71       1.54×
+  config: custom escape      ✓ match        0.75        1.02       1.36×
+  partials as function       ✓ match        1.89        2.29       1.21×
+  cache churn + clearCache   ✓ match        1.97        2.86       1.45×
 ```
 
-`speed = mustache-µs ÷ moose-µs` (>1 means moose is faster). **moose-stash is faster on
-every one of the 17 comparable jobs** (≈1.01–1.66×, median ~1.28×), and does 2 more that
-mustache.js 4.2 cannot render at all.
+**moose-stash is faster on 16 of the 17 comparable jobs** (the 17th, `big-list-2000`, is a
+tie), and does 2 more that mustache.js 4.2 cannot render at all.
+
+## Across five runs
+
+Two 1.0.0 runs, two 1.0.1 runs (single 500-iter warmup + timed), and one 1.0.1 min-of-8:
+
+| | 1.0.0 run 1 | 1.0.0 run 2 | 1.0.1 run 1 | 1.0.1 run 2 | 1.0.1 min-of-8 |
+|---|---|---|---|---|---|
+| geometric mean | **1.33×** | **1.36×** | **1.29×** | **1.27×** | **1.34×** |
+| faster | 10 / 10 | 10 / 10 | 16 / 16 | 16 / 16 | 16 / 17 |
+
+The geometric mean sits at **~1.3×** every run. Reading across the rows:
+
+- **Reliable big wins:** `deep-context` (2.0–2.29× — every leaf walks the whole context
+  stack) and `delimiter-switching` (1.59–1.85×).
+- **Compat surfaces** land consistently at **1.1–1.5×** (Writer, custom tags, and
+  cache-churn among the widest).
+- **`big-list-2000` is a tie:** it swings 0.99×–1.32× across runs, within the vCPU's
+  run-to-run noise — treat it as parity.
+- Absolute µs dropped between the 1.0.0 and 1.0.1 sessions because the container was
+  quieter, **not** because of the release; that's why only ratios are compared. The
+  compat-surface jobs exist only in 1.0.1 (they are the API that release added).
 
 ## The jobs
 
 **Common** (the 90%): a greeting with a conditional; an HTML user-card (escaping + small
 list); a 100-row HTML table; a header/nav/content/footer partial layout; a transactional
-email (conditionals + itemized list + footer).
-
-**Hard**: 6-level nested sections where every leaf walks the whole context stack; a
-2000-row list with per-row conditionals and escaping-heavy fields; a self-recursive
-partial rendering a 364-node tree; a template that switches delimiters three times; a
-portable interpolation lambda; a section lambda using the spec's render callback; and a
-parametric-partial **inheritance** layout with block overrides.
-
-**Compat surfaces** (the drop-in API a real mustache.js consumer touches): a reused
-`Writer` with its own cache; a prebuilt `Context` view-chain; a `Scanner` tokenizing a
-template; per-call custom delimiters and custom escape via the 4th `config` argument;
-partials resolved by a **function** rather than a map; and 512 cycling unique templates
-with periodic `clearCache` (the unbounded-cache guard). Each is byte-identical to
-mustache.js and faster.
-
-## Reading
-
-- **Correctness / capability.** 17 of 19 comparable jobs are **byte-identical** to
-  mustache.js. The other two are **moose-only**: mustache.js 4.2 does not implement
-  template inheritance, and does not pass a render callback to section lambdas (the spec
-  convention moose follows).
-- **Speed.** moose-stash is **faster than mustache.js on every comparable job** —
-  ≈1.0–1.36× on the common/list jobs, up to **1.66×** on deep nested-context walking, and
-  1.18–1.65× across the compatibility surfaces (Writer and cache-churn among the widest
-  gains) — with render semantics untouched (190/194 + 4 declined held throughout).
-- **How the gap closed.** Two Pin-Art arcs located the cost seams exactly:
-  `L.mustache.exceed-parity` (Doc 705) amortized the render walk (push/pop context stack,
-  single-segment lookup, no-op-escape fast path, dropped hot-path boxing), and
-  `L.mustache.lookup-amortization` memoized the dotted-name split. The drop-in surfaces
-  lower onto one shared render/parse core, so they carry no extra cost.
+email. **Hard**: 6-level nested sections; a 2000-row list; a self-recursive partial
+(364-node tree); triple delimiter-switching; a portable interpolation lambda; a section
+lambda using the spec's render callback; a parametric-partial inheritance layout.
+**Compat surfaces**: a reused `Writer` with its own cache; a prebuilt `Context` chain; a
+`Scanner` tokenizing a template; per-call custom delimiters and escape via the 4th
+`config` argument; partials resolved by a **function**; and 512 cycling unique templates
+with periodic `clearCache`.
 
 ## Honesty notes
 
 - **Escaping is identical.** Both engines escape `/` to `&#x2F;` (moose-stash's default
-  entity map matches mustache.js's), so escaped content compares byte-for-byte with no
-  spurious "differ". (An earlier version of these docs claimed moose did not escape `/`;
-  that was never true — the drop-in fixture suite passes 62/62 byte-identical, which
-  requires matching escaping.)
-- `render()` is timed with each engine's parse cache warm (both cache), which is how
-  templates are used in practice.
+  entity map matches mustache.js's), so escaped content compares byte-for-byte. (An earlier
+  version of these docs claimed moose did not escape `/`; that was never true — the drop-in
+  fixture suite is 62/62 byte-identical, which requires matching escaping.)
+- `render()` is timed with each engine's parse cache warm, as templates are used in practice.
+- The 1.0.1 run 1/run 2 logs list 16 comparable jobs (the `cache churn` row was cut by a
+  log line limit); it appears in the min-of-8 column, which is why that column has 17.
 
 ## Size (packaged script, non-blank lines)
 
@@ -98,4 +109,4 @@ mustache.js and faster.
 Comparable size, counted the same way — moose-stash ships slightly fewer non-blank lines
 and **zero comments**, while passing 190/194 (+4 security-declined; vs mustache.js
 142/194), adding template inheritance / dynamic partial names / render-callback lambdas,
-and winning every throughput job.
+and winning (or tying) every throughput job.

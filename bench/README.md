@@ -16,7 +16,7 @@ moose-stash itself stays dependency-free):
 1. **Parity** — does each engine match the spec, and do the two agree, per module?
 2. **Throughput** — µs/render and renders/s on two workloads.
 
-Numbers below are representative from one run (Node 22, Apple Silicon); absolute
+Numbers below are representative from one run (Node v22.22.2, 4-vCPU cloud Xeon); absolute
 throughput is machine-specific and varies run to run — the *ratios* are the signal.
 
 ## Parity (spec corpus, 194 cases)
@@ -91,8 +91,9 @@ mustache-parse-each.
   optional modules mustache.js omits or predates.
 - **Speed:** with both engines caching parses, moose-stash is **faster than
   mustache.js** — ~1.06× on the spec-core corpus and ~1.17× on the 50-item list.
-  The workload suite (`MOOSEBENCH.md`) shows the same: faster on every comparable
-  job, ~1.0–1.66×, median ~1.28×.
+  The workload suite (`MOOSEBENCH.md`) shows the same across five runs: geometric
+  mean ~1.3×, faster on 16 of 17 comparable jobs (big-list-2000 is a tie), up to
+  ~2.0× on deep nested-context walking.
 - **How it got here:** the parse cache closed the gap the first benchmark exposed;
   then two Pin-Art arcs amortized the render path — push/pop context stack (no
   per-item `[...stack, item]` copy), single-segment lookup, no-op-escape fast path,
